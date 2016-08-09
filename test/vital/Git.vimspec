@@ -1,0 +1,468 @@
+function! s:touch(filename) abort
+  let content = readfile(a:filename, 'b')
+  call writefile([], a:filename, 'b')
+  call writefile(content, a:filename, 'b')
+endfunction
+
+
+Describe Git
+  Before all
+    let Path = vital#vital#import('System.Filepath')
+
+    let inside = g:giit#test#inside
+    let outside = g:giit#test#outside
+    let f_inside = g:giit#test#f_inside
+    let f_outside = g:giit#test#f_outside
+    let f_connect = g:giit#test#f_connect
+    let d_inside = g:giit#test#d_inside
+    let d_outside = g:giit#test#d_outside
+  End
+
+  Before
+    let Git = vital#giit#import('Git')
+  End
+
+  Describe .get()
+    Context In a worktree of a git repository
+      It returns a git instance of a {path} belongs
+        let git = Git.get(d_inside)
+        Assert Equals(git.worktree, inside)
+        Assert Equals(git.repository, Path.join(inside, '.git'))
+        Assert Equals(git.commondir, '')
+
+        let git = Git.get(f_inside)
+        Assert Equals(git.worktree, inside)
+        Assert Equals(git.repository, Path.join(inside, '.git'))
+        Assert Equals(git.commondir, '')
+      End
+
+      It returns a cached git instance of a {path} belongs for {path}
+        let git1 = Git.get(f_inside)
+        let git2 = Git.get(f_inside)
+        Assert Same(git1, git2)
+
+        let git1 = Git.get(d_inside)
+        let git2 = Git.get(d_inside)
+        Assert Same(git1, git2)
+      End
+
+      It returns a cached git instance of a {path} belongs for worktree of {path}
+        let git1 = Git.get(f_inside)
+        let git2 = Git.get(d_inside)
+        Assert Same(git1, git2)
+      End
+    End
+
+    Context In a directory which is not a git repository
+      It returns an empty git instance
+        let git = Git.get(d_outside)
+        Assert Equals(git.worktree, '')
+        Assert Equals(git.repository, '')
+        Assert Equals(git.commondir, '')
+
+        let git = Git.get(f_outside)
+        Assert Equals(git.worktree, '')
+        Assert Equals(git.repository, '')
+        Assert Equals(git.commondir, '')
+      End
+
+      It returns a cached empty git instance
+        let git1 = Git.get(f_outside)
+        let git2 = Git.get(f_outside)
+        Assert Same(git1, git2)
+
+        let git1 = Git.get(d_outside)
+        let git2 = Git.get(d_outside)
+        Assert Same(git1, git2)
+      End
+
+      It returns a different empty git instance of a nested {path}
+        let git1 = Git.get(f_outside)
+        let git2 = Git.get(d_outside)
+        Assert Equals(git1, git2)
+        Assert NotSame(git1, git2)
+      End
+    End
+
+    Context In a .git directory of a git repository
+      It returns a git instance of a {path} belongs
+        let git = Git.get(Path.join(inside, '.git', 'COMMIT_EDITMSG'))
+        Assert Equals(git.worktree, inside)
+        Assert Equals(git.repository, Path.join(inside, '.git'))
+        Assert Equals(git.commondir, '')
+
+        let git = Git.get(Path.join(inside, '.git', 'refs'))
+        Assert Equals(git.worktree, inside)
+        Assert Equals(git.repository, Path.join(inside, '.git'))
+        Assert Equals(git.commondir, '')
+      End
+
+      It returns a cached git instance of a {path} belongs for {path}
+        let git1 = Git.get(Path.join(inside, '.git', 'COMMIT_EDITMSG'))
+        let git2 = Git.get(Path.join(inside, '.git', 'COMMIT_EDITMSG'))
+        Assert Same(git1, git2)
+
+        let git1 = Git.get(Path.join(inside, '.git', 'refs'))
+        let git2 = Git.get(Path.join(inside, '.git', 'refs'))
+        Assert Same(git1, git2)
+      End
+
+      It returns a cached git instance of a {path} belongs for worktree of {path}
+        let git1 = Git.get(Path.join(inside, '.git', 'COMMIT_EDITMSG'))
+        let git2 = Git.get(Path.join(inside, '.git', 'refs'))
+        Assert Same(git1, git2)
+      End
+    End
+  End
+
+  Describe .clear()
+    It clears a git instance which belongs to {path}
+      let git1 = Git.get(f_inside)
+      call Git.clear(f_inside)
+      let git2 = Git.get(f_inside)
+      Assert Equals(git1, git2)
+      Assert NotSame(git1, git2)
+    End
+
+    It clears a git instance which belongs to {worktree} of {path}
+      let git1 = Git.get(d_inside)
+      call Git.clear(f_inside)
+      let git2 = Git.get(d_inside)
+      Assert Equals(git1, git2)
+      Assert NotSame(git1, git2)
+    End
+  End
+
+  Describe .relpath()
+    It returns a relative path of {path} from {git} repository
+      let git = Git.get(inside)
+      let abspath = f_inside
+      let relpath = Path.realpath('foo/bar/hoge.txt')
+      Assert Equals(Git.relpath(git, abspath), relpath)
+    End
+
+    It returns a relative path of {path} from {cwd} if {git.worktree} is empty
+      let git = Git.get(outside)
+      let relpath = Path.realpath('foo/bar/hoge.txt')
+      let abspath = fnamemodify(relpath, ':p')
+      Assert Equals(Git.relpath(git, abspath), relpath)
+    End
+
+    It returns {path} if {path} is already a relative path
+      let git = Git.get(inside)
+      let relpath = Path.realpath('foo/bar/hoge.txt')
+      Assert Equals(Git.relpath(git, relpath), relpath)
+      Assert Same(Git.relpath(git, relpath), relpath)
+    End
+  End
+
+  Describe .abspath()
+    It returns an absolute path of {path} from {git} repository
+      let git = Git.get(inside)
+      let abspath = f_inside
+      let relpath = Path.realpath('foo/bar/hoge.txt')
+      Assert Equals(Git.abspath(git, relpath), abspath)
+    End
+
+    It returns an absolute path of {path} from {cwd} if {git.worktree} is empty
+      let git = Git.get(outside)
+      let relpath = Path.realpath('foo/bar/hoge.txt')
+      let abspath = Path.join(getcwd(), relpath)
+      Assert Equals(Git.abspath(git, relpath), abspath)
+    End
+
+    It returns {path} if {path} is already an absolute path
+      let git = Git.get(inside)
+      let abspath = f_inside
+      Assert Equals(Git.abspath(git, abspath), abspath)
+      Assert Same(Git.abspath(git, abspath), abspath)
+    End
+  End
+
+  Describe .readfile()
+    It returns a content of a file in a git repository of {git}
+      let git = Git.get(inside)
+      let filename = Path.realpath(Path.join(inside, '.git', 'description'))
+      let content = Git.readfile(git, 'description')
+      Assert Equals(content, readfile(filename))
+    End
+
+    It return an empty list if {path} does not exist
+      let git = Git.get(inside)
+      let content = Git.readfile(git, 'a-file-does-not-exist')
+      Assert Equals(content, [])
+    End
+  End
+
+  Describe .readline()
+    It returns a first line of a file in a git repository of {git}
+      let git = Git.get(inside)
+      let filename = Path.realpath(Path.join(inside, '.git', 'description'))
+      let content = Git.readline(git, 'description')
+      Assert Equals(content, readfile(filename)[0])
+    End
+
+    It return an empty string if {path} does not exist
+      let git = Git.get(inside)
+      let content = Git.readline(git, 'a-file-does-not-exist')
+      Assert Equals(content, '')
+    End
+  End
+
+  Describe .filereadable()
+    It returns 1 if {path} in a git repository of {git} is readable
+      let git = Git.get(inside)
+      Assert True(Git.filereadable(git, 'description'))
+    End
+
+    It return 0 if {path} in a git repository of {git} is unreadable
+      let git = Git.get(inside)
+      Assert False(Git.filereadable(git, 'refs'))
+    End
+
+    It return 0 if {path} in a git repository of {git} is missing
+      let git = Git.get(inside)
+      Assert False(Git.filereadable(git, 'a-file-does-not-exist'))
+    End
+  End
+
+  Describe .isdirectory()
+    It returns 1 if {path} in a git repository of {git} is a directory
+      let git = Git.get(inside)
+      Assert True(Git.isdirectory(git, 'refs'))
+    End
+
+    It return 0 if {path} in a git repository of {git} is not a directory
+      let git = Git.get(inside)
+      Assert False(Git.isdirectory(git, 'description'))
+    End
+
+    It return 0 if {path} in a git repository of {git} is missing
+      let git = Git.get(inside)
+      Assert False(Git.isdirectory(git, 'a-file-does-not-exist'))
+    End
+  End
+
+  Describe .getftime()
+    It returns ftime of {path} in a git repository of {git}
+      let git = Git.get(inside)
+      Assert Equals(
+            \ Git.getftime(git, 'description'),
+            \ getftime(Path.realpath(Path.join(inside, '.git', 'description')))
+            \)
+    End
+
+    It return -1 if {path} in a git repository of {git} is missing
+      let git = Git.get(inside)
+      Assert Equals(Git.getftime(git, 'a-file-does-not-exist'), -1)
+    End
+  End
+
+  Describe .get_cached_content()
+    It returns {default} when no cache for {slug} and {dependencies} is found
+      let git = Git.get(inside)
+      let default1 = {}
+      let default2 = {}
+      let content1 = Git.get_cached_content(git, 'slug1', 'description', default1)
+      let content2 = Git.get_cached_content(git, 'slug1', 'description', default2)
+      Assert Equals(content1, default1)
+      Assert Equals(content2, default2)
+      Assert Equals(content1, content2)
+      Assert Same(content1, default1)
+      Assert Same(content2, default2)
+      Assert NotSame(content1, content2)
+    End
+
+    It returns a cached content if a cache for {slug} and {dependencies} is found
+      let git = Git.get(inside)
+      let cached = { 'foo': 'bar' }
+      call Git.set_cached_content(git, 'slug2', 'description', cached)
+      let content1 = Git.get_cached_content(git, 'slug2', 'description')
+      let content2 = Git.get_cached_content(git, 'slug2', 'description')
+      Assert Equals(content1, cached)
+      Assert Equals(content2, cached)
+      Assert Equals(content1, content2)
+      Assert Same(content1, cached)
+      Assert Same(content2, cached)
+      Assert Same(content1, content2)
+    End
+
+    It returns {default} when a cache for {slug} and {dependencies} is found but out-date
+      let git = Git.get(inside)
+      let cached = { 'foo': 'bar' }
+      call Git.set_cached_content(git, 'slug3', 'description', cached)
+      let default1 = {}
+      let default2 = {}
+      let content1 = Git.get_cached_content(git, 'slug3', 'description', default1)
+      " Update dependencies
+      sleep | call s:touch(Path.join(inside, '.git', 'description'))
+      let content2 = Git.get_cached_content(git, 'slug3', 'description', default2)
+      Assert Equals(content1, cached)
+      Assert Equals(content2, default2)
+      Assert NotEquals(content1, content2)
+      Assert Same(content1, cached)
+      Assert Same(content2, default2)
+      Assert NotSame(content1, content2)
+    End
+  End
+
+  Describe .set_cached_content()
+    It update a cached content of {slug} and {dependencies}
+      let git = Git.get(inside)
+      let cached = { 'foo': 'bar' }
+      call Git.set_cached_content(git, 'slug', 'index', cached)
+      let default = {} 
+      let content = Git.get_cached_content(git, 'slug', 'index', default)
+      Assert Equals(content, cached)
+      Assert Same(content, cached)
+    End
+  End
+End
+
+if g:giit#test#support_worktree
+  Describe Git
+    Before all
+      let Path = vital#vital#import('System.Filepath')
+
+      let inside = g:giit#test#inside
+      let outside = g:giit#test#outside
+      let connect = g:giit#test#connect
+      let f_inside = g:giit#test#f_inside
+      let f_outside = g:giit#test#f_outside
+      let f_connect = g:giit#test#f_connect
+      let d_inside = g:giit#test#d_inside
+      let d_outside = g:giit#test#d_outside
+      let d_connect = g:giit#test#d_connect
+    End
+
+    Before
+      let Git = vital#giit#import('Git')
+    End
+
+    Describe .get()
+      Context In a linked worktree of a git repository
+        It returns a git instance of a {path} belongs (link)
+          let git = Git.get(d_connect)
+          Assert Equals(git.worktree, connect)
+          Assert Equals(
+                \ git.repository,
+                \ resolve(Path.join(inside, '.git', 'worktrees', 'connect'))
+                \)
+          Assert Equals(
+                \ git.commondir,
+                \ resolve(Path.join(inside, '.git'))
+                \)
+
+          let git = Git.get(f_connect)
+          Assert Equals(git.worktree, connect)
+          Assert Equals(
+                \ git.repository,
+                \ resolve(Path.join(inside, '.git', 'worktrees', 'connect'))
+                \)
+          Assert Equals(
+                \ git.commondir,
+                \ resolve(Path.join(inside, '.git'))
+                \)
+        End
+
+        It returns a cached git instance of a {path} belongs for {path}
+          let git1 = Git.get(f_connect)
+          let git2 = Git.get(f_connect)
+          Assert Same(git1, git2)
+
+          let git1 = Git.get(d_connect)
+          let git2 = Git.get(d_connect)
+          Assert Same(git1, git2)
+        End
+
+        It returns a cached git instance of a {path} belongs for worktree of {path}
+          let git1 = Git.get(f_connect)
+          let git2 = Git.get(d_connect)
+          Assert Same(git1, git2)
+        End
+
+        It returns a difference instance for linked git instance
+          let git1 = Git.get(f_inside)
+          let git2 = Git.get(f_connect)
+          Assert NotEqual(git1, git2)
+
+          let git1 = Git.get(d_inside)
+          let git2 = Git.get(d_connect)
+          Assert NotEqual(git1, git2)
+        End
+      End
+    End
+
+    Describe .readfile()
+      It returns a content of a file in a git repository of {git} (link)
+        let git = Git.get(connect)
+
+        " A file which exists in a repository
+        let filename = Path.realpath(
+              \ Path.join(inside, '.git', 'worktrees', 'connect', 'commondir')
+              \)
+        let content = Git.readfile(git, 'commondir')
+        Assert Equals(content, readfile(filename))
+
+        " A file which exists in a commondir
+        let filename = Path.realpath(Path.join(inside, '.git', 'description'))
+        let content = Git.readfile(git, 'description')
+        Assert Equals(content, readfile(filename))
+      End
+    End
+
+    Describe .readline()
+      It returns a first line of a file in a git repository of {git} (link)
+        let git = Git.get(connect)
+
+        " A file which exists in a repository
+        let filename = Path.realpath(
+              \ Path.join(inside, '.git', 'worktrees', 'connect', 'commondir')
+              \)
+        let content = Git.readline(git, 'commondir')
+        Assert Equals(content, readfile(filename)[0])
+
+        " A file which exists in a commondir
+        let filename = Path.realpath(Path.join(inside, '.git', 'description'))
+        let content = Git.readline(git, 'description')
+        Assert Equals(content, readfile(filename)[0])
+      End
+    End
+
+    Describe .filereadable()
+      It returns 1 if {path} in a git repository of {git} is readable (link)
+        let git = Git.get(connect)
+        " A file which exists in a repository
+        Assert True(Git.filereadable(git, 'commondir'))
+        " A file which exists in a commondir
+        Assert True(Git.filereadable(git, 'description'))
+      End
+    End
+
+    Describe .isdirectory()
+      It returns 1 if {path} in a git repository of {git} is a directory (link)
+        let git = Git.get(connect)
+        " A directory which exists in a repository
+        Assert True(Git.isdirectory(git, 'logs'))
+        " A directory which exists in a commondir
+        Assert True(Git.isdirectory(git, 'refs'))
+      End
+    End
+
+    Describe .getftime()
+      It returns ftime of {path} in a git repository of {git} (link)
+        let git = Git.get(connect)
+        " A file which exists in a repository
+        Assert Equals(
+              \ Git.getftime(git, 'commondir'),
+              \ getftime(Path.realpath(Path.join(inside, '.git', 'worktrees', 'connect', 'commondir')))
+              \)
+        " A file which exists in a commondir
+        Assert Equals(
+              \ Git.getftime(git, 'description'),
+              \ getftime(Path.realpath(Path.join(inside, '.git', 'description')))
+              \)
+      End
+    End
+  End
+endif

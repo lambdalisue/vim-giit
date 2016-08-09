@@ -1,0 +1,300 @@
+function! s:get_pseudo_git(...) abort
+  return extend({
+        \ 'worktree': '',
+        \ 'repository': '',
+        \ 'commondir': '',
+        \}, get(a:000, 0, {})
+        \)
+endfunction
+
+
+Describe giit#core
+  Before all
+    let Path = vital#vital#import('System.Filepath')
+    let scope = themis#helper('scope')
+    let sfile = Path.realpath('autoload/giit/core.vim')
+    let sf = scope.funcs(sfile)
+    let inside = g:giit#test#inside
+    let outside = g:giit#test#outside
+  End
+
+  Before
+    let sv = scope.vars(sfile)
+  End
+
+  After
+    let sv.refs = {}
+  End
+
+  Describe giit#core#expand()
+    It returns an absolute path of {expr}
+      let path = giit#core#expand('README.md')
+      Assert Equals(path, fnamemodify('README.md', ':p'))
+    End
+
+    It returns an absolute path of {expr} without a trailing slash
+      let path = giit#core#expand('autoload')
+      Assert Equals(path . Path.separator(), fnamemodify('autoload', ':p'))
+    End
+
+    It returns a value of 'filename' if meta of {expr} has that
+      call giit#meta#set('filename', 'foobar')
+      let path = giit#core#expand('%')
+      Assert Equals(path, 'foobar')
+    End
+  End
+
+  Describe giit#core#get()
+    It returns a git instance of {expr}
+      let git = giit#core#get(inside)
+      Assert Equals(git.worktree, inside)
+      Assert Equals(git.repository, Path.join(inside, '.git'))
+      Assert Equals(git.commondir, '')
+    End
+  End
+
+  Describe s:get_available_refname()
+    It returns {refname} if there is no confliction
+      let git = s:get_pseudo_git({ 'worktree': getcwd() })
+      let refname = 'foo'
+      Assert Equals(sf.get_available_refname(refname, git), refname)
+      Assert Same(sf.get_available_refname(refname, git), refname)
+    End
+
+    It returns {refname} if a conflicted git instance has same worktree
+      let git = s:get_pseudo_git({ 'worktree': getcwd() })
+      let refname = 'foo'
+      let sv.refs['foo'] = copy(git)
+      Assert Equals(sf.get_available_refname(refname, git), refname)
+      Assert Same(sf.get_available_refname(refname, git), refname)
+    End
+
+    It returns {refname}~<N> if a conflicted git instance has differenct worktree
+      let git = s:get_pseudo_git({ 'worktree': getcwd() })
+      let refname = 'foo'
+      let sv.refs['foo'] = s:get_pseudo_git({ 'worktree': 'foo' })
+      Assert Equals(sf.get_available_refname(refname, git), refname . '~1')
+
+      let sv.refs['foo~1'] = s:get_pseudo_git({ 'worktree': 'bar' })
+      Assert Equals(sf.get_available_refname(refname, git), refname . '~2')
+
+      let sv.refs['foo~2'] = s:get_pseudo_git({ 'worktree': 'hoge' })
+      Assert Equals(sf.get_available_refname(refname, git), refname . '~3')
+    End
+  End
+
+  Describe s:new_refinfo()
+    Context From cache
+      It returns {refinfo} of {refname} written in {expr} if a corresponding cache exists
+        let sv.refs['foo'] = s:get_pseudo_git({ 'worktree': 'foo' })
+
+        file giit://foo/README.md
+        let refinfo = sf.new_refinfo('%')
+        Assert Equals(refinfo, {
+              \ 'refname': 'foo',
+              \ 'buftype': '',
+              \ 'path': 'giit://foo/README.md',
+              \ 'cwd': getcwd(),
+              \})
+      End
+
+      It returns {refinfo} of {cwd} if a corresponding cache does not exist
+        execute printf('cd %s', fnameescape(inside))
+
+        file giit://foo/README.md
+        let refinfo = sf.new_refinfo('%')
+        Assert Equals(refinfo, {
+              \ 'refname': fnamemodify(inside, ':t'),
+              \ 'buftype': '',
+              \ 'path': 'giit://foo/README.md',
+              \ 'cwd': inside,
+              \})
+      End
+    End
+
+    Context From file-like
+      It returns {refinfo} of {path} from {expr} if a corresponding buffer exists and the buftype is file-like
+        execute printf('cd %s', fnameescape(inside))
+
+        let refinfo = sf.new_refinfo('%')
+        Assert Equals(refinfo, {
+              \ 'refname': fnamemodify(inside, ':t'),
+              \ 'buftype': '',
+              \ 'path': inside,
+              \ 'cwd': inside,
+              \})
+      End
+
+      It returns {refinfo} of {path} from {expr} if a corresponding buffer does not exist
+        let refinfo = sf.new_refinfo(inside)
+        Assert Equals(bufexists(inside), 0)
+        Assert Equals(refinfo, {
+              \ 'refname': fnamemodify(inside, ':t'),
+              \ 'buftype': '',
+              \ 'path': inside,
+              \ 'cwd': getcwd(),
+              \})
+      End
+
+      It returns {refinfo} of {cwd} if {path} from {expr} is not in a git repository
+        execute printf('cd %s', fnameescape(inside))
+
+        let refinfo = sf.new_refinfo(outside)
+        Assert Equals(bufexists(outside), 0)
+        Assert Equals(refinfo, {
+              \ 'refname': fnamemodify(inside, ':t'),
+              \ 'buftype': '',
+              \ 'path': outside,
+              \ 'cwd': inside,
+              \})
+      End
+    End
+
+    Context From non-file-like
+      It returns {refinfo} of {cwd}
+        execute printf('cd %s', fnameescape(inside))
+
+        setlocal buftype=nofile
+        let refinfo = sf.new_refinfo('%')
+        Assert Equals(refinfo, {
+              \ 'refname': fnamemodify(inside, ':t'),
+              \ 'buftype': 'nofile',
+              \ 'path': inside,
+              \ 'cwd': inside,
+              \})
+      End
+    End
+
+    It caches a git instance with a refname if a git instance is enabled
+      let refinfo = sf.new_refinfo(inside)
+      Assert Equals(keys(sv.refs), [refinfo.refname])
+    End
+
+    It does not cache a git instance with a refname if a git instance is disabled
+      execute printf('cd %s', fnameescape(outside))
+      let refinfo = sf.new_refinfo(outside)
+      Assert Equals(keys(sv.refs), [])
+    End
+  End
+
+  Describe s:get_refinfo()
+    Before
+      execute printf('cd %s', fnameescape(inside))
+    End
+
+    Context From a pseudo buffer
+      It returns a cached {refinfo}
+        let git = s:get_pseudo_git()
+        let sv.refs['foo'] = git
+
+        file giit://foo/README.md
+        let refinfo1 = sf.get_refinfo('%')
+        let refinfo2 = sf.get_refinfo('%')
+
+        Assert Equals(refinfo1, refinfo2)
+        Assert Same(refinfo1, refinfo2)
+      End
+
+      It returns a cached {refinfo} with different {cwd}
+        let git = s:get_pseudo_git()
+        let sv.refs['foo'] = git
+
+        file giit://foo/README.md
+        let refinfo1 = sf.get_refinfo('%')
+        execute printf('cd %s', fnameescape(outside))
+        let refinfo2 = sf.get_refinfo('%')
+
+        Assert Equals(refinfo1, refinfo2)
+        Assert Same(refinfo1, refinfo2)
+      End
+
+      It returns a cached {refinfo} with different {bufname}
+        let git = s:get_pseudo_git()
+        let sv.refs['foo'] = git
+
+        file giit://foo/README.md
+        let refinfo1 = sf.get_refinfo('%')
+        file giit://foo/CONTRIBUTE.md
+        let refinfo2 = sf.get_refinfo('%')
+
+        Assert Equals(refinfo1, refinfo2)
+        Assert Same(refinfo1, refinfo2)
+      End
+    End
+
+    Context From a file-like buffer
+      It returns a cached {refinfo}
+        let git = s:get_pseudo_git()
+
+        file A
+        let refinfo1 = sf.get_refinfo('%')
+        let refinfo2 = sf.get_refinfo('%')
+
+        Assert Equals(refinfo1, refinfo2)
+        Assert Same(refinfo1, refinfo2)
+      End
+
+      It returns a cached {refinfo} with different {cwd}
+        let git = s:get_pseudo_git()
+
+        file A
+        let refinfo1 = sf.get_refinfo('%')
+        execute printf('cd %s', fnameescape(outside))
+        let refinfo2 = sf.get_refinfo('%')
+
+        Assert Equals(refinfo1, refinfo2)
+        Assert Same(refinfo1, refinfo2)
+      End
+
+      It returns a new {refinfo} with different {bufname}
+        let git = s:get_pseudo_git()
+
+        file A
+        let refinfo1 = sf.get_refinfo('%')
+        file B
+        let refinfo2 = sf.get_refinfo('%')
+
+        Assert NotEquals(refinfo1, refinfo2)
+      End
+    End
+
+    Context From a non-file-like buffer
+      It returns a cached {refinfo}
+        let git = s:get_pseudo_git()
+
+        setlocal buftype=nofile
+        file A
+        let refinfo1 = sf.get_refinfo('%')
+        let refinfo2 = sf.get_refinfo('%')
+
+        Assert Equals(refinfo1, refinfo2)
+        Assert Same(refinfo1, refinfo2)
+      End
+
+      It returns a new {refinfo} with different {cwd}
+        let git = s:get_pseudo_git()
+
+        setlocal buftype=nofile
+        file A
+        let refinfo1 = sf.get_refinfo('%')
+        execute printf('cd %s', fnameescape(outside))
+        let refinfo2 = sf.get_refinfo('%')
+
+        Assert NotEquals(refinfo1, refinfo2)
+      End
+
+      It returns a cached {refinfo} with different {bufname}
+        let git = s:get_pseudo_git()
+
+        setlocal buftype=nofile
+        file A
+        let refinfo1 = sf.get_refinfo('%')
+        file B
+        let refinfo2 = sf.get_refinfo('%')
+
+        Assert Equals(refinfo1, refinfo2)
+        Assert Same(refinfo1, refinfo2)
+      End
+    End
+  End
+End

@@ -1,0 +1,2 @@
+https://github.com/vim-jp/vital.vim
+https://github.com/thinca/vim-themis

@@ -1,0 +1,189 @@
+Describe Git.Process
+  Before all
+    let Git = vital#giit#import('Git')
+    let Path = vital#vital#import('System.Filepath')
+
+    let inside = g:giit#test#inside
+    let outside = g:giit#test#outside
+    let connect = g:giit#test#connect
+    let f_inside = g:giit#test#f_inside
+    let f_outside = g:giit#test#f_outside
+    let f_connect = g:giit#test#f_connect
+    let d_inside = g:giit#test#d_inside
+    let d_outside = g:giit#test#d_outside
+    let d_connect = g:giit#test#d_connect
+  End
+
+  Before
+    let GitProcess = vital#giit#import('Git.Process')
+  End
+
+  Describe .get_config()
+    It returns a copy of a config dictionary
+      let config = GitProcess.get_config()
+      Assert IsDict(config)
+      Assert KeyExists(config, 'executable')
+      Assert KeyExists(config, 'arguments')
+
+      let config2 = GitProcess.get_config()
+      Assert Equals(config, config2)
+      Assert NotSame(config, config2)
+    End
+  End
+
+  Describe .set_config()
+    Before
+      let _config = GitProcess.get_config()
+    End
+
+    After
+      call GitProcess.set_config(_config)
+    End
+
+    It overwrites existing config with {config}
+      call GitProcess.set_config({
+            \ 'executable': 'hub',
+            \ 'arguments': [],
+            \})
+      let config = GitProcess.get_config()
+      Assert Equals(config, {
+            \ 'executable': 'hub',
+            \ 'arguments': [],
+            \})
+    End
+
+    It ignores unknown attributes
+      call GitProcess.set_config({
+            \ 'executable': 'hub',
+            \ 'arguments': [],
+            \ 'unknown_attribute': 'bar',
+            \})
+      let config = GitProcess.get_config()
+      Assert Equals(config, {
+            \ 'executable': 'hub',
+            \ 'arguments': [],
+            \})
+    End
+
+    It ignores missing attributes
+      call GitProcess.set_config({
+            \ 'executable': 'hub',
+            \})
+      let config = GitProcess.get_config()
+      Assert Equals(config, {
+            \ 'executable': 'hub',
+            \ 'arguments': ['-c', 'color.ui=false', '-c', 'core.editor=false', '--no-pager'],
+            \})
+    End
+  End
+
+  Describe .args()
+    Context In a git repository
+      It returns a prefix of a git execution args
+        let git = Git.get(inside)
+        let ret = GitProcess.args(git)
+        Assert Equals(ret, [
+              \ 'git',
+              \ '-c',
+              \ 'color.ui=false',
+              \ '-c',
+              \ 'core.editor=false',
+              \ '--no-pager',
+              \ '-C',
+              \ inside,
+              \])
+      End
+    End
+
+    Context In an out of a git repository
+      It returns a prefix of a git execution args
+        let git = Git.get(outside)
+        let ret = GitProcess.args(git)
+        Assert Equals(ret, [
+              \ 'git',
+              \ '-c',
+              \ 'color.ui=false',
+              \ '-c',
+              \ 'core.editor=false',
+              \ '--no-pager',
+              \])
+      End
+    End
+  End
+
+  Describe .execute()
+    It executes a git command in a {git.worktree} if {git} is specified
+      let git = Git.get(inside)
+      let args = ['rev-parse', '--show-toplevel']
+      let result = GitProcess.execute(git, args)
+      Assert Equals(result.success, 1, result.output)
+      " NOTE:
+      " git rev-parse --show-toplevel returns an UNIX path even in Windows
+      " NOTE:
+      " A temporary directory is symlinked in Mac OS X
+      Assert Equals(result.content, [Path.unixpath(resolve(inside))])
+    End
+
+    It executes a git command in a cwd if {git} is NOT specified
+      let git = {}
+      let args = ['rev-parse', '--show-toplevel']
+      let result = GitProcess.execute(git, args)
+      Assert Equals(result.success, 1, result.output)
+      " NOTE:
+      " git rev-parse --show-toplevel returns an UNIX path even in Windows
+      " NOTE:
+      " A temporary directory is symlinked in Mac OS X
+      Assert Equals(result.content, [Path.unixpath(resolve(getcwd()))])
+    End
+  End
+
+  Describe .shell()
+    It executes a git command via shell (!) in a {git.worktree} if {git} is specified
+      let out = tempname()
+      let git = Git.get(inside)
+      let args = ['rev-parse', '--show-toplevel']
+      call GitProcess.shell(git, args, {
+            \ 'suffix_args': ['>', shellescape(out)],
+            \})
+      " NOTE:
+      " git rev-parse --show-toplevel returns an UNIX path even in Windows
+      " NOTE:
+      " A temporary directory is symlinked in Mac OS X
+      Assert Equals(readfile(out), [Path.unixpath(resolve(inside))])
+    End
+
+    It executes a git command via shell (!) in a cwd if {git} is NOT specified
+      let out = tempname()
+      let git = {}
+      let args = ['rev-parse', '--show-toplevel']
+      call GitProcess.shell(git, args, {
+            \ 'suffix_args': ['>', shellescape(out)],
+            \})
+      " NOTE:
+      " git rev-parse --show-toplevel returns an UNIX path even in Windows
+      " NOTE:
+      " A temporary directory is symlinked in Mac OS X
+      Assert Equals(readfile(out), [Path.unixpath(resolve(getcwd()))])
+    End
+  End
+
+  Describe .jobstart()
+    It starts a git command process in a {git.worktree} if {git} is specified
+      let options = {}
+      function! options.on_stdout(channel, msg) abort
+        let self.content = a:msg
+      endfunction
+      let git = Git.get(inside)
+      let args = ['rev-parse', '--show-toplevel']
+      let job = GitProcess.jobstart(git, args, options)
+      call GitProcess.jobwait(job)
+      Assert Equals(options.content, [Path.unixpath(resolve(inside)), ''])
+    End
+  End
+
+  Describe .jobstop()
+  End
+
+  Describe .jobwait()
+  End
+End

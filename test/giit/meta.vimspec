@@ -1,0 +1,171 @@
+Describe giit#meta
+  Describe #require()
+    It returns a {value} of {name} when {name} exist
+      call giit#meta#set('foo', 'bar')
+      Assert Equals(giit#meta#require('foo'), 'bar')
+    End
+
+    It throws an exception when {name} does not exist
+      Throws /An required meta value/ giit#meta#require('foo')
+    End
+  End
+
+  Describe #require_at()
+    It returns a {value} of {name} when {name} exist on {expr}
+      let bufnr = bufnr('%')
+      call giit#meta#set('foo', 'bar')
+      vnew
+      Assert Equals(giit#meta#require_at(bufnr, 'foo'), 'bar')
+    End
+
+    It throws an exception when {name} does not exist on {expr}
+      let bufnr = bufnr('%')
+      vnew
+      call giit#meta#set('foo', 'bar')
+      Throws /An required meta value/ giit#meta#require_at(bufnr, 'foo')
+    End
+  End
+
+  Describe #modified()
+    It returns 1 when {name} does not exist
+      Assert Equals(giit#meta#modified('foo', {}), 1)
+    End
+
+    It returns 0 when a value of {name} is equal to {value}
+      call giit#meta#set('foo', 'bar')
+      Assert Equals(giit#meta#modified('foo', 'bar'), 0)
+    End
+
+    It returns 1 when a value of {name} is different from {value}
+      call giit#meta#set('foo', 'bar')
+      Assert Equals(giit#meta#modified('foo', 'hoge'), 1)
+    End
+  End
+
+  Describe #modified_at()
+    It returns 1 when {name} does not exist
+      let bufnr = bufnr('%')
+      vnew
+      Assert Equals(giit#meta#modified_at(bufnr, 'foo', {}), 1)
+    End
+
+    It returns 0 when a value of {name} is equal to {value}
+      let bufnr = bufnr('%')
+      call giit#meta#set('foo', 'bar')
+      vnew
+      Assert Equals(giit#meta#modified_at(bufnr, 'foo', 'bar'), 0)
+    End
+
+    It returns 1 when a value of {name} is different from {value}
+      let bufnr = bufnr('%')
+      call giit#meta#set('foo', 'bar')
+      vnew
+      Assert Equals(giit#meta#modified_at(bufnr, 'foo', 'hoge'), 1)
+    End
+  End
+
+  Describe #get()
+    It returns a default value when {name} does not exist
+      Assert Equals(giit#meta#get('foo'), '')
+      Assert Equals(giit#meta#get('foo', 0), 0)
+    End
+
+    It returns a {value} of {name} when exists
+      call giit#meta#set('foo', 'bar')
+      Assert Equals(giit#meta#get('foo'), 'bar')
+    End
+  End
+
+  Describe #get_at()
+    It returns a default value when {name} does not exist on {expr}
+      let bufnr = bufnr('%')
+      vnew
+      call giit#meta#set('foo', 'bar')
+      Assert Equals(giit#meta#get_at(bufnr, 'foo'), '')
+      Assert Equals(giit#meta#get_at(bufnr, 'foo', 0), 0)
+    End
+
+    It returns a {value} of {name} when exists on {expr}
+      let bufnr = bufnr('%')
+      call giit#meta#set('foo', 'bar')
+      vnew
+      Assert Equals(giit#meta#get_at(bufnr, 'foo'), 'bar')
+    End
+  End
+
+  Describe #set()
+    It sets a {value} with {name}
+      call giit#meta#set('foo', 'bar')
+      Assert Equals(giit#meta#get('foo'), 'bar')
+    End
+  End
+
+  Describe #set_at()
+    It sets a {value} with {name} on {expr}
+      let bufnr = bufnr('%')
+      vnew
+      call giit#meta#set_at(bufnr, 'foo', 'bar')
+      Assert Equals(giit#meta#get_at(bufnr, 'foo'), 'bar')
+    End
+  End
+
+  Describe #has()
+    It returns 0 when {name} does not exist
+      Assert Equals(giit#meta#has('foo'), 0)
+    End
+
+    It returns 1 when {name} exists
+      call giit#meta#set('foo', 'bar')
+      Assert Equals(giit#meta#has('foo'), 1)
+    End
+  End
+
+  Describe #has_at()
+    It returns 0 when {name} does not exist on {expr}
+      let bufnr = bufnr('%')
+      vnew
+      call giit#meta#set('foo', 'bar')
+      Assert Equals(giit#meta#has_at(bufnr, 'foo'), 0)
+    End
+
+    It returns 1 when {name} exists on {expr}
+      let bufnr = bufnr('%')
+      call giit#meta#set('foo', 'bar')
+      vnew
+      Assert Equals(giit#meta#has_at(bufnr, 'foo'), 1)
+    End
+  End
+
+  Describe #remove()
+    It does nothing when {name} does not exist
+      call giit#meta#set('foo', 'foo')
+      call giit#meta#remove('bar')
+      Assert Equals(giit#meta#get('foo'), 'foo')
+      Assert Equals(giit#meta#get('bar'), '')
+    End
+
+    It removes {name} when exists
+      call giit#meta#set('foo', 'foo')
+      call giit#meta#set('bar', 'bar')
+      call giit#meta#remove('bar')
+      Assert Equals(giit#meta#get('foo'), 'foo')
+      Assert Equals(giit#meta#get('bar'), '')
+    End
+  End
+
+  Describe #clear()
+    It does nothing when no entry exist
+      call giit#meta#clear()
+      Assert Equals(giit#meta#get('foo'), '')
+      Assert Equals(giit#meta#get('bar'), '')
+    End
+
+    It removes all entries
+      call giit#meta#set('foo', 'foo')
+      call giit#meta#set('bar', 'bar')
+      call giit#meta#clear()
+      Assert Equals(giit#meta#get('foo'), '')
+      Assert Equals(giit#meta#get('bar'), '')
+    End
+  End
+End

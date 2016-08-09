@@ -1,0 +1,22 @@
+*giit.txt*			A core plugin to handle git repository
+
+Version: 0.1.0
+Author : Alisue <lambdalisue@hashnote.net>
+License: MIT license
+Support: Vim 7.4.2137 and above
+
+
+==============================================================================
+CONTENTS					*giit-content*
+
+INTRODUCTION				|giit-introduction|
+
+
+==============================================================================
+INTRODUCTION					*giit-introduction*
+
+Under development.
+
+
+==============================================================================
+vim:tw=78:fo=tcq2mM:ts=8:ft=help:norl
