@@ -8,7 +8,7 @@ endif
 function! giit#core#expand(expr) abort
   let path = giit#meta#get_at(a:expr, 'filename', '')
   if empty(path)
-    let path = fnamemodify(expand(a:expr), ':p')
+    let path = expand(a:expr)
   endif
   return s:Path.remove_last_separator(path)
 endfunction

@@ -27,17 +27,19 @@ Describe giit#core
   End
 
   Describe giit#core#expand()
-    It returns an absolute path of {expr}
-      let path = giit#core#expand('README.md')
-      Assert Equals(path, fnamemodify('README.md', ':p'))
+    It returns an expand real path of {expr}
+      let path = giit#core#expand('$USER/README.md')
+      let user = expand('$USER')
+      Assert Equals(path, Path.join(user, 'README.md'))
     End
 
-    It returns an absolute path of {expr} without a trailing slash
-      let path = giit#core#expand('autoload')
-      Assert Equals(path . Path.separator(), fnamemodify('autoload', ':p'))
+    It returns an expand value of {expr} without a trailing slash
+      let path = giit#core#expand('$USER/autoload/')
+      let user = expand('$USER')
+      Assert Equals(path . Path.separator(), Path.join(user, 'autoload/'))
     End
 
-    It returns a value of 'filename' if meta of {expr} has that
+    It returns a value of 'filename' in a meta of a {expr} buffer
       call giit#meta#set('filename', 'foobar')
       let path = giit#core#expand('%')
       Assert Equals(path, 'foobar')
