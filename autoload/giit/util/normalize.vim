@@ -7,7 +7,10 @@ let s:GitTerm = vital#giit#import('Git.Term')
 " git requires an unix relative path from the repository often
 function! giit#util#normalize#relpath(git, path) abort
   let path = giit#core#expand(a:path)
-  return s:Path.unixpath(s:Git.relpath(a:git, path))
+  let relpath = s:Path.is_absolute(path)
+        \ ? s:Git.relpath(a:git, path)
+        \ : path
+  return s:Path.unixpath(relpath)
 endfunction
 
 " NOTE:

@@ -51,13 +51,21 @@ function! s:new_refinfo(expr) abort
         \ 'repository': '',
         \ 'commondir': '',
         \}
+  let bufname = bufname(a:expr)
+  let buftype = getbufvar(a:expr, '&buftype', '')
 
-  " Use refname to find git instance
-  let refname = matchstr(bufname(a:expr), '^giit:\%(//\)\?\zs[^:\\/]\+')
-  let git = empty(refname) ? git : get(s:refs, refname, git)
+  " Use refname directly
+  if bufname =~# '^giit:\%(//\)\?\zs[^:\\/]\+'
+    let refname = matchstr(bufname, '^giit:\%(//\)\?\zs[^:\\/]\+')
+    return {
+          \ 'refname': refname,
+          \ 'buftype': buftype,
+          \ 'bufname': bufname,
+          \ 'cwd': getcwd(),
+          \}
+  endif
 
   " Use filename of the buffer if the buffer is a file like buffer
-  let buftype = getbufvar(a:expr, '&buftype', '')
   let path = giit#core#expand(a:expr)
   if empty(git.worktree)
     if index(['nofile', 'quickfix', 'help'], buftype) == -1
@@ -92,16 +100,16 @@ function! s:new_refinfo(expr) abort
   return {
         \ 'refname': refname,
         \ 'buftype': buftype,
-        \ 'path': path,
+        \ 'bufname': empty(bufname) ? '' : s:Path.abspath(bufname),
         \ 'cwd': cwd,
         \}
 endfunction
 
 function! s:get_refinfo(expr) abort
-  let refinfo = getbufvar(a:expr, 'giit_refinfo', {})
-  let refname = matchstr(bufname(a:expr), '^giit:\%(//\)\?\zs[^:\\/]\+')
+  let bufname = bufname(a:expr)
   let buftype = getbufvar(a:expr, '&buftype', '')
-  let path = giit#core#expand(a:expr)
+  let refinfo = getbufvar(a:expr, 'giit_refinfo', {})
+  let refname = matchstr(bufname, '^giit:\%(//\)\?\zs[^:\\/]\+')
   let cwd = getcwd()
 
   " Use cached refinfo in a giit pseudo buffer
@@ -112,11 +120,10 @@ function! s:get_refinfo(expr) abort
   " Use cached refinfo when the cache is fresh enough
   if empty(refname) && index(['nofile', 'quickfix', 'help'], buftype) == -1
     " File like
-    if !empty(refinfo) && path ==# refinfo.path
+    if !empty(refinfo) && !empty(bufname) && s:Path.abspath(bufname) ==# refinfo.bufname
       return refinfo
     endif
   else
-    " Non file
     if !empty(refinfo) && cwd ==# refinfo.cwd
       return refinfo
     endif

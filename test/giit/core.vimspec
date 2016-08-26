@@ -95,21 +95,8 @@ Describe giit#core
         Assert Equals(refinfo, {
               \ 'refname': 'foo',
               \ 'buftype': '',
-              \ 'path': 'giit://foo/README.md',
+              \ 'bufname': 'giit://foo/README.md',
               \ 'cwd': getcwd(),
-              \})
-      End
-
-      It returns {refinfo} of {cwd} if a corresponding cache does not exist
-        execute printf('cd %s', fnameescape(inside))
-
-        file giit://foo/README.md
-        let refinfo = sf.new_refinfo('%')
-        Assert Equals(refinfo, {
-              \ 'refname': fnamemodify(inside, ':t'),
-              \ 'buftype': '',
-              \ 'path': 'giit://foo/README.md',
-              \ 'cwd': inside,
               \})
       End
     End
@@ -122,7 +109,7 @@ Describe giit#core
         Assert Equals(refinfo, {
               \ 'refname': fnamemodify(inside, ':t'),
               \ 'buftype': '',
-              \ 'path': inside,
+              \ 'bufname': '',
               \ 'cwd': inside,
               \})
       End
@@ -133,7 +120,7 @@ Describe giit#core
         Assert Equals(refinfo, {
               \ 'refname': fnamemodify(inside, ':t'),
               \ 'buftype': '',
-              \ 'path': inside,
+              \ 'bufname': '',
               \ 'cwd': getcwd(),
               \})
       End
@@ -146,7 +133,7 @@ Describe giit#core
         Assert Equals(refinfo, {
               \ 'refname': fnamemodify(inside, ':t'),
               \ 'buftype': '',
-              \ 'path': outside,
+              \ 'bufname': '',
               \ 'cwd': inside,
               \})
       End
@@ -161,7 +148,7 @@ Describe giit#core
         Assert Equals(refinfo, {
               \ 'refname': fnamemodify(inside, ':t'),
               \ 'buftype': 'nofile',
-              \ 'path': inside,
+              \ 'bufname': '',
               \ 'cwd': inside,
               \})
       End
