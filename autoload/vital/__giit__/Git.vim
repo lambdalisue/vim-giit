@@ -84,9 +84,9 @@ function! s:relpath(git, path) abort
         \)
   let rpath = resolve(path)
   return path =~# '^' . prefix
-        \ ? path[len(prefix) : ]
+        \ ? matchstr(path, '^' . prefix . '\zs.*')
         \ : rpath =~# '^' . prefix
-        \   ? rpath[len(prefix) : ]
+        \   ? matchstr(rpath, '^' . prefix . '\zs.*')
         \   : path
 endfunction
 
