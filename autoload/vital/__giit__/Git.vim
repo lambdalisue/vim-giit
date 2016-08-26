@@ -82,9 +82,12 @@ function! s:relpath(git, path) abort
   let prefix = s:String.escape_pattern(
         \ a:git.worktree . s:Path.separator()
         \)
+  let rpath = resolve(path)
   return path =~# '^' . prefix
         \ ? path[len(prefix) : ]
-        \ : matchstr(resolve(path), '^' . prefix . '\zs')
+        \ : rpath =~# '^' . prefix
+        \   ? rpath[len(prefix) : ]
+        \   : path
 endfunction
 
 function! s:abspath(git, path) abort
