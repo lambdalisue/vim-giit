@@ -72,7 +72,7 @@ function! s:clear(path) abort
 endfunction
 
 function! s:relpath(git, path) abort
-  let path = s:Path.realpath(a:path)
+  let path = s:Path.realpath(expand(a:path))
   if s:Path.is_relative(path)
     return path
   endif
@@ -80,11 +80,11 @@ function! s:relpath(git, path) abort
     return s:Path.relpath(path)
   endif
   let prefix = s:String.escape_pattern(
-        \ a:git.worktree[-1] ==# s:Path.separator()
-        \   ? expand(a:git.worktree)
-        \   : expand(a:git.worktree) . s:Path.separator()
+        \ a:git.worktree . s:Path.separator()
         \)
-  return substitute(expand(path), '^' . prefix, '', '')
+  return path =~# '^' . prefix
+        \ ? path[len(prefix) : ]
+        \ : matchstr(resolve(path), '^' . prefix . '\zs')
 endfunction
 
 function! s:abspath(git, path) abort
@@ -211,8 +211,8 @@ function! s:_find(path) abort
   let worktree = s:_find_worktree(dirpath)
   let repository = len(worktree) ? s:_find_repository(worktree) : ''
   let meta = {
-        \ 'worktree': simplify(s:Path.realpath(worktree)),
-        \ 'repository': simplify(s:Path.realpath(repository)),
+        \ 'worktree': simplify(s:Path.realpath(resolve(worktree))),
+        \ 'repository': simplify(s:Path.realpath(resolve(repository))),
         \ 'commondir': '',
         \}
   " Check if the repository is a pseudo repository or original one
