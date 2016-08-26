@@ -14,6 +14,16 @@ function! s:_vital_depends() abort
 endfunction
 
 
+function! s:fail_on_pseudo(git, ...) abort
+  let name = get(a:000, 0, 'Git')
+  if empty(a:git) || empty(a:git.worktree)
+    throw printf(
+          \ 'vital: %s: A pseudo git instance is not allowed in the context',
+          \ name,
+          \)
+  endif
+endfunction
+
 function! s:get(path) abort
   let path = s:_normalize(a:path)
   let uptime = getftime(path)
@@ -71,73 +81,77 @@ function! s:clear(path) abort
   endfor
 endfunction
 
-function! s:relpath(git, path) abort
-  let path = s:Path.realpath(expand(a:path))
-  if s:Path.is_relative(path)
-    return path
-  endif
-  if empty(a:git.worktree)
-    return s:Path.relpath(path)
+function! s:relpath(git, abspath) abort
+  call s:fail_on_pseudo(a:git, 'Git.relpath()')
+  let abspath = s:Path.realpath(expand(a:abspath))
+  if s:Path.is_relative(abspath)
+    throw printf(
+          \ 'vital: Git.relpath(): A path "%s" is already a relative path',
+          \ a:abspath,
+          \)
   endif
   let prefix = s:String.escape_pattern(
         \ a:git.worktree . s:Path.separator()
         \)
-  let rpath = resolve(path)
-  return path =~# '^' . prefix
-        \ ? matchstr(path, '^' . prefix . '\zs.*')
-        \ : rpath =~# '^' . prefix
-        \   ? matchstr(rpath, '^' . prefix . '\zs.*')
-        \   : path
+  if abspath !~# '^' . prefix
+    throw printf(
+          \ 'vital: Git.relpath(): A path "%s" does not belongs to a git working tree "%s"',
+          \ a:abspath,
+          \ a:git.worktree,
+          \)
+  endif
+  return matchstr(abspath, '^' . prefix . '\zs.*')
 endfunction
 
-function! s:abspath(git, path) abort
-  let path = s:Path.realpath(a:path)
-  if s:Path.is_absolute(path)
-    return path
+function! s:abspath(git, relpath) abort
+  call s:fail_on_pseudo(a:git, 'Git.abspath()')
+  let relpath = s:Path.realpath(a:relpath)
+  if s:Path.is_absolute(relpath)
+    throw printf(
+          \ 'vital: Git.abspath(): A path "%s" is already an absolute path',
+          \ a:relpath,
+          \)
   endif
-  if empty(a:git.worktree)
-    return s:Path.abspath(path)
-  endif
-  return s:Path.join(a:git.worktree, path)
+  return s:Path.join(a:git.worktree, relpath)
 endfunction
 
-function! s:readfile(git, path) abort
-  let relpath = s:relpath(a:git, a:path)
-  let path = s:Path.join(a:git.repository, relpath)
-  let path = !filereadable(path) && !empty(a:git.commondir)
-        \ ? s:Path.join(a:git.commondir, relpath)
-        \ : path
+function! s:expand(git, relpath) abort
+  call s:fail_on_pseudo(a:git, 'Git.expand()')
+  let relpath = s:Path.realpath(a:relpath)
+  if s:Path.is_absolute(relpath)
+    throw printf(
+          \ 'vital: Git.expand(): A relative path is required but "%s" has specified',
+          \ a:relpath,
+          \)
+  endif
+  let path1 = s:Path.join(a:git.repository, relpath)
+  let path2 = empty(a:git.commondir) ? '' : s:Path.join(a:git.commondir, relpath)
+  return filereadable(path1) || isdirectory(path1)
+        \ ? path1
+        \ : filereadable(path2) || isdirectory(path2) ? path2 : path1
+endfunction
+
+function! s:readfile(git, relpath) abort
+  let path = s:expand(a:git, a:relpath)
   return filereadable(path) ? readfile(path) : []
 endfunction
 
-function! s:readline(git, path) abort
-  return get(s:readfile(a:git, a:path), 0, '')
+function! s:readline(git, relpath) abort
+  return get(s:readfile(a:git, a:relpath), 0, '')
 endfunction
 
-function! s:filereadable(git, path) abort
-  let relpath = s:relpath(a:git, a:path)
-  let path = s:Path.join(a:git.repository, relpath)
-  let path = !filereadable(path) && !empty(a:git.commondir)
-        \ ? s:Path.join(a:git.commondir, relpath)
-        \ : path
+function! s:filereadable(git, relpath) abort
+  let path = s:expand(a:git, a:relpath)
   return filereadable(path)
 endfunction
 
-function! s:isdirectory(git, path) abort
-  let relpath = s:relpath(a:git, a:path)
-  let path = s:Path.join(a:git.repository, relpath)
-  let path = !isdirectory(path) && !empty(a:git.commondir)
-        \ ? s:Path.join(a:git.commondir, relpath)
-        \ : path
+function! s:isdirectory(git, relpath) abort
+  let path = s:expand(a:git, a:relpath)
   return isdirectory(path)
 endfunction
 
-function! s:getftime(git, path) abort
-  let relpath = s:relpath(a:git, a:path)
-  let path = s:Path.join(a:git.repository, relpath)
-  let path = !filereadable(path) && !isdirectory(path) && !empty(a:git.commondir)
-        \ ? s:Path.join(a:git.commondir, relpath)
-        \ : path
+function! s:getftime(git, relpath) abort
+  let path = s:expand(a:git, a:relpath)
   return getftime(path)
 endfunction
 

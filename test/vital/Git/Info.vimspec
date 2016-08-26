@@ -90,7 +90,9 @@ Describe Git.Info
     Context refs not in a traditional directory (in packed-ref)
       It returns a content of a matched line in packed-refs file
         let fname_packed_refs = Path.join(inside, '.git', 'packed-refs')
-        let saved_packed_refs = Git.readfile(git, fname_packed_refs)
+        let saved_packed_refs = filereadable(fname_packed_refs)
+              \ ? readfile(fname_packed_refs)
+              \ : []
         try
           call writefile([
                 \ '# pack-refs with: peeled fully-peeled ',

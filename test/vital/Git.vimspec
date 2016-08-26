@@ -22,6 +22,18 @@ Describe Git
     let Git = vital#giit#import('Git')
   End
 
+  Describe .fail_on_pseudo()
+    It does nothing if a full {git} instance is specified
+      let git = Git.get(inside)
+      call Git.fail_on_pseudo(git)
+    End
+
+    It throws an exception when a pseudo {git} instance is specified
+      let git = Git.get(outside)
+      Throws /A pseudo git instance is not allowed/ Git.fail_on_pseudo(git)
+    End
+  End
+
   Describe .get()
     Context In a worktree of a git repository
       It returns a git instance of a {path} belongs
@@ -134,48 +146,75 @@ Describe Git
   End
 
   Describe .relpath()
-    It returns a relative path of {path} from {git} repository
+    It returns a relative path of a {path} from a {git} working tree
       let git = Git.get(inside)
       let abspath = f_inside
       let relpath = Path.realpath('foo/bar/hoge.txt')
       Assert Equals(Git.relpath(git, abspath), relpath)
     End
 
-    It returns a relative path of {path} from {cwd} if {git.worktree} is empty
+    It throws an exception when a pseudo {git} instance is specified
       let git = Git.get(outside)
       let relpath = Path.realpath('foo/bar/hoge.txt')
       let abspath = fnamemodify(relpath, ':p')
-      Assert Equals(Git.relpath(git, abspath), relpath)
+      Throws /A pseudo git instance is not allowed/ Git.relpath(git, abspath)
     End
 
-    It returns {path} if {path} is already a relative path
+    It throws an exception when a {path} is already a relative path
       let git = Git.get(inside)
       let relpath = Path.realpath('foo/bar/hoge.txt')
-      Assert Equals(Git.relpath(git, relpath), relpath)
-      Assert Same(Git.relpath(git, relpath), relpath)
+      Throws /A path .* is already a relative path/ Git.relpath(git, relpath)
+    End
+
+    It throws an exception when a {path} does not belongs to a {git} working tree
+      let git = Git.get(inside)
+      let abspath = f_outside
+      let relpath = Path.realpath('foo/bar/hoge.txt')
+      Throws /A path .* does not belongs to a git working tree/ Git.relpath(git, abspath)
     End
   End
 
   Describe .abspath()
-    It returns an absolute path of {path} from {git} repository
+    It returns an absolute path of a {path} from a {git} working tree
       let git = Git.get(inside)
       let abspath = f_inside
       let relpath = Path.realpath('foo/bar/hoge.txt')
       Assert Equals(Git.abspath(git, relpath), abspath)
     End
 
-    It returns an absolute path of {path} from {cwd} if {git.worktree} is empty
+    It throws an exception when a pseudo {git} instance is specified
       let git = Git.get(outside)
       let relpath = Path.realpath('foo/bar/hoge.txt')
-      let abspath = Path.join(getcwd(), relpath)
-      Assert Equals(Git.abspath(git, relpath), abspath)
+      Throws /A pseudo git instance is not allowed/ Git.abspath(git, relpath)
     End
 
-    It returns {path} if {path} is already an absolute path
+    It throws an exception when a {path} is already an absolute path
       let git = Git.get(inside)
       let abspath = f_inside
-      Assert Equals(Git.abspath(git, abspath), abspath)
-      Assert Same(Git.abspath(git, abspath), abspath)
+      Throws /A path .* is already an absolute path/ Git.abspath(git, abspath)
+    End
+  End
+
+  Describe .expand()
+    It returns an absolute path of a {path} in a {git} repository (.git)
+      let git = Git.get(inside)
+      let abspath = Path.join(inside, '.git', 'config')
+      Assert Equals(Git.expand(git, 'config'), abspath)
+
+      let abspath = Path.join(inside, '.git', 'refs', 'heads', 'master')
+      Assert Equals(Git.expand(git, 'refs/heads/master'), abspath)
+    End
+
+    It throws an exception when a pseudo {git} instance is specified
+      let git = Git.get(outside)
+      let relpath = 'config'
+      Throws /A pseudo git instance is not allowed/ Git.expand(git, relpath)
+    End
+
+    It throws an exception when a {path} is already an absolute path
+      let git = Git.get(inside)
+      let abspath = Path.join(inside, '.git', 'config')
+      Throws /A relative path is required but .* has specified/ Git.expand(git, abspath)
     End
   End
 
@@ -390,6 +429,24 @@ if g:giit#test#support_worktree
           let git2 = Git.get(d_connect)
           Assert NotEqual(git1, git2)
         End
+      End
+    End
+
+    Describe .expand()
+      It returns an absolute path of {path} in a common dir of {git} (link)
+        let git = Git.get(connect)
+
+        " A file which exists in a repository
+        let filename = Path.realpath(
+              \ Path.join(inside, '.git', 'worktrees', 'connect', 'commondir')
+              \)
+        let path = Git.expand(git, 'commondir')
+        Assert Equals(path, filename)
+
+        " A file which exists in a commondir
+        let filename = Path.realpath(Path.join(inside, '.git', 'description'))
+        let path = Git.expand(git, 'description')
+        Assert Equals(path, filename)
       End
     End
 
