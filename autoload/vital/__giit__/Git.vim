@@ -211,8 +211,8 @@ function! s:_find(path) abort
   let worktree = s:_find_worktree(dirpath)
   let repository = len(worktree) ? s:_find_repository(worktree) : ''
   let meta = {
-        \ 'worktree': simplify(worktree),
-        \ 'repository': simplify(repository),
+        \ 'worktree': simplify(s:Path.abspath(s:Path.realpath(worktree))),
+        \ 'repository': simplify(s:Path.abspath(s:Path.realpath(repository))),
         \ 'commondir': '',
         \}
   " Check if the repository is a pseudo repository or original one
