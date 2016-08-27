@@ -22,18 +22,6 @@ Describe Git
     let Git = vital#giit#import('Git')
   End
 
-  Describe .fail_on_pseudo()
-    It does nothing if a full {git} instance is specified
-      let git = Git.get(inside)
-      call Git.fail_on_pseudo(git)
-    End
-
-    It throws an exception when a pseudo {git} instance is specified
-      let git = Git.get(outside)
-      Throws /A pseudo git instance is not allowed/ Git.fail_on_pseudo(git)
-    End
-  End
-
   Describe .get()
     Context In a worktree of a git repository
       It returns a git instance of a {path} belongs
