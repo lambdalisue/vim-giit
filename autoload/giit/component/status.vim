@@ -78,7 +78,7 @@ function! s:initialize_buffer(static_options) abort
   call action.smart_map('n', '<Return>', '<Plug>(giit-edit)')
   call action.smart_map('n', 'ee', '<Plug>(giit-edit)')
   call action.smart_map('n', 'EE', '<Plug>(giit-edit-right)')
-  call action.smart_map('n', 'dd', '<Plug>(giit-diff)')
+  call action.smart_map('n', 'dd', '<Plug>(giit-diff)', '0D')
   call action.smart_map('n', 'ds', '<Plug>(giit-diff-split)')
   call action.smart_map('nv', '<<', '<Plug>(giit-index-stage)')
   call action.smart_map('nv', '>>', '<Plug>(giit-index-unstage)')

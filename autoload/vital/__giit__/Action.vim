@@ -122,11 +122,12 @@ function! s:binder.call(name_or_alias, candidates) abort range
   call call(action.callback, [candidates, action.options], self)
 endfunction
 
-function! s:binder.smart_map(mode, lhs, rhs) abort
+function! s:binder.smart_map(mode, lhs, rhs, ...) abort
+  let lhs = get(a:000, 0, a:lhs)
   for mode in split(a:mode, '\zs')
     execute printf(
           \ '%smap <buffer><expr> %s <SID>_smart_map(''%s'', ''%s'')',
-          \ mode, a:lhs, a:lhs, a:rhs,
+          \ mode, a:lhs, lhs, a:rhs,
           \)
   endfor
 endfunction

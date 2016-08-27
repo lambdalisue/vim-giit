@@ -366,6 +366,9 @@ function! s:selector.get_selected_candidates(...) abort
     endif
     let fline = get(a:000, 0, line('.'))
     let eline = get(a:000, 1, fline)
+    if fline == 1 && eline == 1
+      return []
+    endif
     let findex = self.get_index_from_linenum(fline)
     let eindex = self.get_index_from_linenum(eline)
     return map(
@@ -396,7 +399,7 @@ endfunction
 
 function! s:_on_candidate_select() range abort
   let selector = s:get()
-  if !selector.selectable
+  if !selector.selectable || (a:firstline == 1 && a:lastline == 1)
     return
   endif
   let indices = map(
@@ -411,7 +414,7 @@ endfunction
 
 function! s:_on_candidate_unselect() range abort
   let selector = s:get()
-  if !selector.selectable
+  if !selector.selectable || (a:firstline == 1 && a:lastline == 1)
     return
   endif
   let indices = map(
@@ -426,7 +429,7 @@ endfunction
 
 function! s:_on_candidate_toggle() range abort
   let selector = s:get()
-  if !selector.selectable
+  if !selector.selectable || (a:firstline == 1 && a:lastline == 1)
     return
   endif
   let indices = map(
