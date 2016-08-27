@@ -1,21 +1,42 @@
 Describe Git.Process
   Before all
-    let Git = vital#giit#import('Git')
+    call g:git_tester.attach(l:)
     let Path = vital#vital#import('System.Filepath')
-
-    let inside = g:giit#test#inside
-    let outside = g:giit#test#outside
-    let connect = g:giit#test#connect
-    let f_inside = g:giit#test#f_inside
-    let f_outside = g:giit#test#f_outside
-    let f_connect = g:giit#test#f_connect
-    let d_inside = g:giit#test#d_inside
-    let d_outside = g:giit#test#d_outside
-    let d_connect = g:giit#test#d_connect
+    let Git = vital#giit#import('Git')
   End
 
   Before
     let GitProcess = vital#giit#import('Git.Process')
+  End
+
+  After
+    call Git.expire()
+  End
+
+  Describe .bind()
+    It binds methods to a {git} instance
+      let git = Git.get(f_inside1)
+      call GitProcess.bind(git)
+
+      Assert KeyExists(git, 'arguments')
+      Assert KeyExists(git, 'execute')
+      Assert KeyExists(git, 'shell')
+      Assert True(islocked('git.arguments'))
+      Assert True(islocked('git.execute'))
+      Assert True(islocked('git.shell'))
+    End
+
+    It does not bind if a {git} instance already has binded
+      let git = Git.get(f_inside1)
+      let git.arguments = 1
+      let git.execute = 1
+      let git.shell = 1
+      call GitProcess.bind(git)
+
+      Assert Equals(git.arguments, 1)
+      Assert Equals(git.execute, 1)
+      Assert Equals(git.shell, 1)
+    End
   End
 
   Describe .get_config()
@@ -23,7 +44,6 @@ Describe Git.Process
       let config = GitProcess.get_config()
       Assert IsDict(config)
       Assert KeyExists(config, 'executable')
-      Assert KeyExists(config, 'arguments')
 
       let config2 = GitProcess.get_config()
       Assert Equals(config, config2)
@@ -43,76 +63,60 @@ Describe Git.Process
     It overwrites existing config with {config}
       call GitProcess.set_config({
             \ 'executable': 'hub',
-            \ 'arguments': [],
             \})
       let config = GitProcess.get_config()
       Assert Equals(config, {
             \ 'executable': 'hub',
-            \ 'arguments': [],
             \})
     End
 
     It ignores unknown attributes
       call GitProcess.set_config({
             \ 'executable': 'hub',
-            \ 'arguments': [],
             \ 'unknown_attribute': 'bar',
             \})
       let config = GitProcess.get_config()
       Assert Equals(config, {
             \ 'executable': 'hub',
-            \ 'arguments': [],
             \})
     End
 
     It ignores missing attributes
-      call GitProcess.set_config({
-            \ 'executable': 'hub',
-            \})
+      call GitProcess.set_config({})
       let config = GitProcess.get_config()
       Assert Equals(config, {
-            \ 'executable': 'hub',
-            \ 'arguments': ['-c', 'color.ui=false', '-c', 'core.editor=false', '--no-pager'],
+            \ 'executable': 'git',
             \})
     End
   End
 
-  Describe .args()
-    Context In a git repository
-      It returns a prefix of a git execution args
-        let git = Git.get(inside)
-        let ret = GitProcess.args(git)
-        Assert Equals(ret, [
-              \ 'git',
-              \ '-c',
-              \ 'color.ui=false',
-              \ '-c',
-              \ 'core.editor=false',
-              \ '--no-pager',
-              \ '-C',
-              \ inside,
-              \])
-      End
+  Describe .arguments()
+    It returns arguments without -C ... option for an empty dictionary
+      let git = {}
+      let args = GitProcess.arguments(git)
+      Assert Equals(args, [
+            \ 'git',
+            \ '--no-pager',
+            \ '-c', 'color.ui=false',
+            \ '-c', 'core.editor=false',
+            \])
     End
 
-    Context In an out of a git repository
-      It returns a prefix of a git execution args
-        let git = Git.get(outside)
-        let ret = GitProcess.args(git)
-        Assert Equals(ret, [
-              \ 'git',
-              \ '-c',
-              \ 'color.ui=false',
-              \ '-c',
-              \ 'core.editor=false',
-              \ '--no-pager',
-              \])
-      End
+    It returns arguments with -C ... option for a {git} instance
+      let git = Git.get(f_inside1)
+      let args = GitProcess.arguments(git)
+      Assert Equals(args, [
+            \ 'git',
+            \ '--no-pager',
+            \ '-c', 'color.ui=false',
+            \ '-c', 'core.editor=false',
+            \ '-C', git.worktree,
+            \])
     End
   End
 
   Describe .execute()
-    It executes a git command in a {git.worktree} if {git} is specified
+    It executes a git command in a working tree if a {git} instance is specified
       let git = Git.get(inside)
       let args = ['rev-parse', '--show-toplevel']
       let result = GitProcess.execute(git, args)
@@ -142,48 +146,28 @@ Describe Git.Process
       let out = tempname()
       let git = Git.get(inside)
       let args = ['rev-parse', '--show-toplevel']
-      call GitProcess.shell(git, args, {
-            \ 'suffix_args': ['>', shellescape(out)],
+      let result = GitProcess.shell(git, args, {
+            \ 'stdout': 1,
             \})
       " NOTE:
       " git rev-parse --show-toplevel returns an UNIX path even in Windows
       " NOTE:
       " A temporary directory is symlinked in Mac OS X
-      Assert Equals(readfile(out), [Path.unixpath(resolve(inside))])
+      Assert Equals(result.stdout, [Path.unixpath(resolve(inside))])
     End
 
     It executes a git command via shell (!) in a cwd if {git} is NOT specified
       let out = tempname()
       let git = {}
       let args = ['rev-parse', '--show-toplevel']
-      call GitProcess.shell(git, args, {
-            \ 'suffix_args': ['>', shellescape(out)],
+      let result = GitProcess.shell(git, args, {
+            \ 'stdout': 1,
             \})
       " NOTE:
       " git rev-parse --show-toplevel returns an UNIX path even in Windows
       " NOTE:
       " A temporary directory is symlinked in Mac OS X
-      Assert Equals(readfile(out), [Path.unixpath(resolve(getcwd()))])
+      Assert Equals(result.stdout, [Path.unixpath(resolve(getcwd()))])
     End
-  End
-
-  Describe .jobstart()
-    It starts a git command process in a {git.worktree} if {git} is specified
-      let options = {}
-      function! options.on_stdout(channel, msg) abort
-        let self.content = a:msg
-      endfunction
-      let git = Git.get(inside)
-      let args = ['rev-parse', '--show-toplevel']
-      let job = GitProcess.jobstart(git, args, options)
-      call GitProcess.jobwait(job)
-      Assert Equals(options.content, [Path.unixpath(resolve(inside)), ''])
-    End
-  End
-
-  Describe .jobstop()
-  End
-
-  Describe .jobwait()
   End
 End

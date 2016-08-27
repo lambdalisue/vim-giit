@@ -10,6 +10,7 @@ call themis#helper('command').with(s:assert)
 
 call themis#log('***********************************************************')
 call themis#log('v:progname:     ' . v:progname)
+call themis#log('v:version:      ' . v:version)
 call themis#log('$LANG:          ' . $LANG)
 call themis#log('&encoding:      ' . &encoding)
 call themis#log('&termencoding:  ' . &termencoding)
@@ -22,114 +23,5 @@ for s:runtimepath in split(&runtimepath, ',')
 endfor
 call themis#log('***********************************************************')
 
-" Check git version and if the git support 'worktree' feature
-let g:giit#test#git_version = matchstr(system('git --version'), '\%(\d\.\)\+\d')
-let g:giit#test#support_worktree = g:giit#test#git_version >=# '2.7.0'
-
-" A git instance for preparation
-let s:git = {}
-
-function! s:git.execute(...) abort dict
-  let command = a:0 == 1 ? a:1 : call('printf', a:000)
-  let args = [
-        \ 'git',
-        \ '-C ' . fnameescape(self.worktree),
-        \ '-c color.ui=false',
-        \ '-c core.editor=false',
-        \ '--no-pager',
-        \ command,
-        \]
-  call system(join(args))
-endfunction
-
-" Register global events -----------------------------------------------------
-let s:events = {}
-
-function! s:events.initialize() abort
-  let Path = vital#vital#import('System.Filepath')
-  let root = resolve(tempname())
-  let inside = Path.join(root, 'inside')
-  let remote = Path.join(root, 'remote')
-  let outside = Path.join(root, 'outside')
-  let connect = Path.join(root, 'connect')
-
-  call mkdir(Path.join(inside, 'foo', 'bar'), 'p')
-  call mkdir(Path.join(remote, 'foo', 'bar'), 'p')
-  call mkdir(Path.join(outside, 'foo', 'bar'), 'p')
-  call mkdir(Path.join(connect), 'p')
-  call writefile(['Hello'], Path.join(inside, 'foo', 'bar', 'hoge.txt'))
-  call writefile(['Hello'], Path.join(inside, 'foo', 'bar', 'moge.txt'))
-  call writefile(['Hello'], Path.join(inside, 'foo', 'bar', 'koge.txt'))
-  call writefile(['Hello'], Path.join(remote, 'foo', 'bar', 'mage.txt'))
-  call writefile(['Hello'], Path.join(outside, 'foo', 'bar', 'hoge.txt'))
-
-  let git = copy(s:git)
-  let git.worktree = inside
-  call git.execute('init')
-  call git.execute('add %s', fnameescape(Path.realpath('foo/bar/hoge.txt')))
-  call git.execute('commit --quiet -m "First"')
-  call git.execute('checkout --track -b develop')
-  call git.execute('add %s', fnameescape(Path.realpath('foo/bar/moge.txt')))
-  call git.execute('commit --quiet -m "Second"')
-  call git.execute('checkout master')
-  call git.execute('add %s', fnameescape(Path.realpath('foo/bar/koge.txt')))
-  call git.execute('commit --quiet -m "Third"')
-  if g:giit#test#support_worktree
-    call git.execute('worktree add %s develop', fnameescape(connect))
-  endif
-
-  let git.worktree = remote
-  call git.execute('init')
-  call git.execute('add %s', fnameescape(Path.realpath('foo/bar/mage.txt')))
-  call git.execute('commit --quiet -m "Fourth"')
-
-  let git.worktree = inside
-  call git.execute('remote add external %s', fnameescape(remote))
-  call git.execute('fetch external')
-  call git.execute('checkout --track -b external/master remotes/external/master')
-  call git.execute('checkout master')
-
-  let g:giit#test#root = root
-  let g:giit#test#inside = inside
-  let g:giit#test#remote = remote
-  let g:giit#test#outside = outside
-  let g:giit#test#connect = connect
-  let g:giit#test#f_inside = Path.join(inside, 'foo', 'bar', 'hoge.txt')
-  let g:giit#test#f_outside = Path.join(outside, 'foo', 'bar', 'hoge.txt')
-  let g:giit#test#f_connect = Path.join(connect, 'foo', 'bar', 'hoge.txt')
-  let g:giit#test#d_inside = Path.join(inside, 'foo', 'bar')
-  let g:giit#test#d_outside = Path.join(outside, 'foo', 'bar')
-  let g:giit#test#d_connect = Path.join(connect, 'foo', 'bar')
-
-  call themis#log('Git version: ' . g:giit#test#git_version)
-  call themis#log('Support worktree: ' . g:giit#test#support_worktree)
-  call themis#log('Temporary path: ' . root)
-  call themis#log('Branches:')
-  call themis#log(system(printf(
-        \ 'git -C %s branch -av',
-        \ fnameescape(inside),
-        \)))
-  call themis#log('***********************************************************')
-endfunction
-
-function! s:events.before_each() abort
-  let g:giit#test#cwd = getcwd()
-  windo bwipeout!
-endfunction
-
-function! s:events.after_each() abort
-  silent execute printf(
-        \ 'cd %s',
-        \ fnameescape(g:giit#test#cwd)
-        \)
-endfunction
-
-" Until: https://github.com/thinca/vim-themis/pull/42
-execute printf(
-      \ 'set runtimepath^=%s',
-      \ fnameescape(expand('<sfile>:h'))
-      \)
-call themis#helper('global').with(s:events)
-
-" Disable interactive UIs
-let g:giit#test = 1
+" Source 'startup.vim'
+execute printf('source %s', fnameescape(expand('<sfile>:h') . '/startup.vim'))

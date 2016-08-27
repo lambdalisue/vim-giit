@@ -1,0 +1,240 @@
+Describe Git.Util
+  Before all
+    call g:git_tester.attach(l:)
+    let Path = vital#vital#import('System.Filepath')
+    let Git = vital#giit#import('Git')
+    let GitCore = vital#giit#import('Git.Core')
+  End
+
+  Before
+    let GitUtil = vital#giit#import('Git.Util')
+    let git = Git.get(inside)
+  End
+
+  After
+    call Git.expire()
+  End
+
+  Describe .bind()
+    It binds methods to a {git} instance
+      let git = Git.get(f_inside1)
+      call GitUtil.bind(git)
+
+      Assert KeyExists(git, 'util')
+      Assert KeyExists(git.util, 'get_repository_config')
+      Assert KeyExists(git.util, 'resolve_ref')
+      Assert KeyExists(git.util, 'get_local_hash')
+      Assert KeyExists(git.util, 'get_remote_hash')
+      Assert KeyExists(git.util, 'get_local_branch')
+      Assert KeyExists(git.util, 'get_remote_branch')
+      Assert KeyExists(git.util, 'get_last_commitmsg')
+      Assert KeyExists(git.util, 'count_commits_ahead_of_remote')
+      Assert KeyExists(git.util, 'count_commits_behind_remote')
+      Assert KeyExists(git.util, 'find_common_ancestor')
+      Assert True(islocked('git.util'))
+      Assert True(islocked('git.util.get_repository_config'))
+      Assert True(islocked('git.util.resolve_ref'))
+      Assert True(islocked('git.util.get_local_hash'))
+      Assert True(islocked('git.util.get_remote_hash'))
+      Assert True(islocked('git.util.get_local_branch'))
+      Assert True(islocked('git.util.get_remote_branch'))
+      Assert True(islocked('git.util.get_last_commitmsg'))
+      Assert True(islocked('git.util.count_commits_ahead_of_remote'))
+      Assert True(islocked('git.util.count_commits_behind_remote'))
+      Assert True(islocked('git.util.find_common_ancestor'))
+
+      let config = git.util.get_repository_config()
+      Assert KeyExists(config, 'get_branch_remote')
+      Assert KeyExists(config, 'get_branch_merge')
+      Assert KeyExists(config, 'get_remote_fetch')
+      Assert KeyExists(config, 'get_remote_url')
+      Assert KeyExists(config, 'get_comment_char')
+      Assert True(islocked('config.get_branch_remote'))
+      Assert True(islocked('config.get_branch_merge'))
+      Assert True(islocked('config.get_remote_fetch'))
+      Assert True(islocked('config.get_remote_url'))
+      Assert True(islocked('config.get_comment_char'))
+    End
+
+    It does not bind if a {git} instance already has binded
+      let git = Git.get(f_inside1)
+      let git.util = 1
+      call GitUtil.bind(git)
+
+      Assert Equals(git.util, 1)
+    End
+  End
+
+  Describe .get_repository_config()
+    It returns a dictionary which represent 'config' file in '.git' directory
+      let conf = GitUtil.get_repository_config(git)
+      Assert Equals(conf.core.bare, 'false')
+    End
+  End
+
+  Describe .get_branch_remote()
+    It returns a name of remote
+      let conf = GitUtil.get_repository_config(git)
+      let ret = GitUtil.get_branch_remote(conf, 'master')
+      Assert Equals(ret, '')
+
+      let ret = GitUtil.get_branch_remote(conf, 'develop')
+      Assert Match(ret, '\.\?')
+    End
+  End
+
+  Describe .get_branch_merge()
+    It returns a branch name of remote
+      let conf = GitUtil.get_repository_config(git)
+      let ret = GitUtil.get_branch_merge(conf, 'master')
+      Assert Equals(ret, '')
+
+      let ret = GitUtil.get_branch_merge(conf, 'develop')
+      Assert Equals(ret, 'refs/heads/master')
+
+      let ret = GitUtil.get_branch_merge(conf, 'develop', 1)
+      Assert Equals(ret, 'master')
+    End
+  End
+
+  Describe .get_remote_fetch()
+    It returns a path of {remote}
+      let conf = GitUtil.get_repository_config(git)
+      let ret = GitUtil.get_remote_fetch(conf, 'external')
+      Assert Equals(ret, '+refs/heads/*:refs/remotes/external/*')
+    End
+  End
+
+  Describe .get_remote_url()
+    It returns a URL of {remote}
+      let conf = GitUtil.get_repository_config(git)
+      let ret = GitUtil.get_remote_url(conf, 'external')
+      Assert Equals(ret, escape(external, '\'))
+    End
+  End
+
+  Describe .get_comment_char()
+    It returns a comment char
+      let conf = GitUtil.get_repository_config(git)
+      let ret = GitUtil.get_comment_char(conf)
+      Assert Equals(ret, '#')
+    End
+  End
+
+  Describe .resolve_ref()
+    Context refs in a traditional directory
+      It returns a content of a file in refs directory
+        let exp = GitCore.readline(git, 'refs/heads/master')
+        let ref = GitUtil.resolve_ref(git, 'refs/heads/master')
+        Assert Equals(exp, ref)
+
+        let ref = GitUtil.resolve_ref(git, 'refs/heads/develop')
+        Assert NotEquals(exp, ref)
+      End
+
+      It returns a content of a file which is reffered by 'ref:'
+        let exp = GitCore.readline(git, 'refs/remotes/origin/master')
+        let ref = GitUtil.resolve_ref(git, 'refs/remotes/origin/HEAD')
+        Assert Equals(exp, ref)
+      End
+    End
+
+    Context refs not in a traditional directory (in packed-ref)
+      It returns a content of a matched line in packed-refs file
+        let fname_packed_refs = Path.join(inside, '.git', 'packed-refs')
+        let saved_packed_refs = filereadable(fname_packed_refs)
+              \ ? readfile(fname_packed_refs)
+              \ : []
+        try
+          call writefile([
+                \ '# pack-refs with: peeled fully-peeled ',
+                \ 'aa7a5d8236c7d029f066a409928f3294a17a3805 refs/remotes/origin/foobar1',
+                \ 'ba7a5d8236c7d029f066a409928f3294a17a3805 refs/remotes/origin/foobar2',
+                \ 'ca7a5d8236c7d029f066a409928f3294a17a3805 refs/remotes/origin/foobar3',
+                \], fname_packed_refs
+                \)
+          let ref = GitUtil.resolve_ref(git, 'refs/remotes/origin/foobar1')
+          Assert Equals(ref, 'aa7a5d8236c7d029f066a409928f3294a17a3805')
+
+          let ref = GitUtil.resolve_ref(git, 'refs/remotes/origin/foobar2')
+          Assert Equals(ref, 'ba7a5d8236c7d029f066a409928f3294a17a3805')
+
+          let ref = GitUtil.resolve_ref(git, 'refs/remotes/origin/foobar3')
+          Assert Equals(ref, 'ca7a5d8236c7d029f066a409928f3294a17a3805')
+        finally
+          " Restore a content of packed-refs
+          call writefile(saved_packed_refs, fname_packed_refs)
+        endtry
+      End
+    End
+  End
+
+  Describe .get_local_hash()
+    It returns a hashref of a {branch}
+      let name = 'master'
+      let exp = GitUtil.resolve_ref(git, 'refs/heads/' . name)
+
+      Assert Equals(GitUtil.get_local_hash(git, name), exp)
+      Assert Equals(GitUtil.get_local_hash(git, 'HEAD'), exp)
+    End
+  End
+
+  Describe .get_remote_hash()
+    It returns a hashref of {branch} on {remote}
+      let exp = GitUtil.resolve_ref(git, 'refs/remotes/origin/master')
+
+      Assert Equals(GitUtil.get_remote_hash(git, 'origin', 'master'), exp)
+      Assert Equals(GitUtil.get_remote_hash(git, 'origin', 'HEAD'), exp)
+    End
+  End
+
+  Describe .get_local_branch()
+    It returns a dictionary which contains a branch name and hash
+      let name = 'master'
+      let hash = GitUtil.resolve_ref(git, 'refs/heads/' . name)
+      let branch = GitUtil.get_local_branch(git)
+      Assert Equals(branch, { 'name': name, 'hash': hash })
+    End
+  End
+
+  Describe .get_remote_branch()
+    It returns a dictionary which contains a branch name, hash, remote, and url
+      let hash = GitUtil.resolve_ref(git, 'refs/remotes/external/master')
+      let branch = GitUtil.get_remote_branch(git, 'external/master')
+      Assert Equals(branch, {
+            \ 'hash': hash,
+            \ 'name': 'master',
+            \ 'url': escape(external, '\'),
+            \ 'remote': 'external',
+            \})
+    End
+  End
+
+  Describe .get_last_commitmsg()
+    It returns a last commit message
+      let msg = GitUtil.get_last_commitmsg(git)
+      Assert Equals(msg, ['Third', ''])
+    End
+  End
+
+  Describe .count_commits_ahead_of_remote()
+  End
+
+  Describe .count_commits_behind_remote()
+  End
+
+  Describe .find_common_ancestor()
+    It returns a common ancestor commit hash of two commits
+      let commit = GitUtil.find_common_ancestor(git, 'master', 'develop')
+      let commit2 = GitUtil.find_common_ancestor(git, 'master', commit)
+      let commit3 = GitUtil.find_common_ancestor(git, 'develop', commit)
+      let master = GitUtil.get_local_hash(git, 'master')
+      let develop = GitUtil.get_local_hash(git, 'develop')
+      Assert NotEquals(commit, master)
+      Assert NotEquals(commit, develop)
+      Assert Equals(commit, commit2)
+      Assert Equals(commit, commit3)
+    End
+  End
+
+End

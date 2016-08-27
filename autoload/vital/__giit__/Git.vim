@@ -13,237 +13,132 @@ function! s:_vital_depends() abort
         \]
 endfunction
 
-" Repo instance---------------------------------------------------------------
-let s:repo = {}
-
-function! s:repo.expand(relpath) abort
-  let relpath = s:Path.realpath(a:relpath)
-  if s:Path.is_absolute(relpath)
-    throw printf(
-          \ 'vital: Git: repo.expand(): It requires a relative path but "%s" has specified',
-          \ a:relpath,
-          \)
-  endif
-  let path1 = s:Path.join(self.__owner__.repository, relpath)
-  let path2 = empty(self.__owner__.commondir)
-        \ ? ''
-        \ : s:Path.join(self.__owner__.commondir, relpath)
-  return filereadable(path1) || isdirectory(path1)
-        \ ? path1
-        \ : filereadable(path2) || isdirectory(path2) ? path2 : path1
-endfunction
-
-function! s:repo.readfile(relpath) abort
-  let path = self.expand(a:relpath)
-  return filereadable(path) ? readfile(path) : []
-endfunction
-
-function! s:repo.readline(relpath) abort
-  return get(self.readfile(a:relpath), 0, '')
-endfunction
-
-function! s:repo.filereadable(relpath) abort
-  let path = self.expand(a:relpath)
-  return filereadable(path)
-endfunction
-
-function! s:repo.isdirectory(relpath) abort
-  let path = self.expand(a:relpath)
-  return isdirectory(path)
-endfunction
-
-function! s:repo.getftime(relpath) abort
-  let path = self.expand(a:relpath)
-  return getftime(path)
-endfunction
-
-" Git instance ---------------------------------------------------------------
-let s:git = {}
-
-function! s:git.relpath(abspath) abort
-  let abspath = s:Path.realpath(expand(a:abspath))
-  if s:Path.is_relative(abspath)
-    throw printf(
-          \ 'vital: Git: git.relpath(): It requires a relative path but "%s" has specified',
-          \ a:abspath,
-          \)
-  endif
-  let prefix = s:String.escape_pattern(
-        \ self.worktree . s:Path.separator()
-        \)
-  if abspath !~# '^' . prefix
-    throw printf(
-          \ 'vital: Git: git.relpath(): A path "%s" does not belongs to a git working tree "%s"',
-          \ a:abspath,
-          \ self.worktree,
-          \)
-  endif
-  return matchstr(abspath, '^' . prefix . '\zs.*')
-endfunction
-
-function! s:git.abspath(relpath) abort
-  let relpath = s:Path.realpath(a:relpath)
-  if s:Path.is_absolute(relpath)
-    throw printf(
-          \ 'vital: Git: git.abspath(): It requires an absolute path but "%s" has specified',
-          \ a:relpath,
-          \)
-  endif
-  return s:Path.join(self.worktree, relpath)
-endfunction
-
-function! s:git.get_cached_content(slug, dependencies, ...) abort
-  let dependencies = sort(filter(
-        \ type(a:dependencies) != type([]) ? [a:dependencies] : copy(a:dependencies),
-        \ 'self.repo.filereadable(v:val)',
-        \))
-  let cached = self.cache.get(a:slug . ':' . string(dependencies), {})
-  if empty(cached)
-    return get(a:000, 0)
-  endif
-  let uptimes = map(copy(dependencies), 'self.repo.getftime(v:val)')
-  for index in range(len(uptimes))
-    if uptimes[index] == -1 || uptimes[index] > cached.uptimes[index]
-      return get(a:000, 0)
-    endif
-  endfor
-  return cached.content
-endfunction
-
-function! s:git.set_cached_content(slug, dependencies, content) abort
-  let dependencies = sort(filter(
-        \ type(a:dependencies) != type([]) ? [a:dependencies] : copy(a:dependencies),
-        \ 'self.repo.filereadable(v:val)',
-        \))
-  let uptimes = map(copy(dependencies), 'self.repo.getftime(v:val)')
-  call self.cache.set(a:slug . ':' . string(dependencies), {
-        \ 'uptimes': uptimes,
-        \ 'content': a:content,
-        \})
-endfunction
-
 
 " Public ---------------------------------------------------------------------
 function! s:get(path) abort
-  let path = s:_normalize(a:path)
-  let uptime = getftime(path)
-  let cached = s:registry.get(path, {})
-  if empty(cached) || uptime == -1 || uptime > cached.uptime
-    let meta = s:_find(path)
-    if empty(meta.worktree)
-      let git = s:_new(meta)
-      call s:registry.set(path, {
-            \ 'uptime': uptime,
-            \ 'git': git,
-            \})
-      return git
-    else
-      let uptime = getftime(meta.worktree)
-      let cached = s:registry.get(meta.worktree, {})
-      if empty(cached) || uptime == -1 || uptime > cached.uptime
-        let git = s:_new(meta)
-        call s:registry.set(path, {
-              \ 'uptime': uptime,
-              \ 'git': git,
-              \})
-        call s:registry.set(meta.worktree, {
-              \ 'uptime': uptime,
-              \ 'git': git,
-              \})
-        return git
-      else
-        call s:registry.set(path, {
-              \ 'uptime': uptime,
-              \ 'git': cached.git,
-              \})
-        return cached.git
-      endif
-    endif
-  else
-    return cached.git
+  let dirpath = s:_normalize(a:path)
+  if s:registry.has(dirpath)
+    return s:registry.get(dirpath)
   endif
+  " Find a repository meta
+  let meta = s:_retrieve(dirpath)
+  " Get or create a git instance from meta
+  if empty(meta)
+    let git = {}
+  elseif s:registry.has(meta.worktree)
+    let git = s:registry.get(meta.worktree)
+  else
+    let git = s:_new(meta)
+    call s:registry.set(meta.worktree, git)
+  endif
+  call s:registry.set(dirpath, git)
+  return git
 endfunction
 
-function! s:clear(path) abort
-  let path = s:_normalize(a:path)
-  let cached = s:registry.get(path)
-  let root = empty(cached)
-        \ ? path
-        \ : empty(cached.git.worktree)
-        \   ? path
-        \   : cached.git.worktree
-  let keys = filter(
-        \ copy(s:registry.keys()),
-        \ printf('v:val =~# ''^%s''', s:String.escape_pattern(root))
+function! s:expire(...) abort
+  let git = get(a:000, 0)
+  if type(git) == type(0)
+    call s:registry.clear()
+    return
+  endif
+  let pattern = s:String.escape_pattern(
+        \ git.worktree . s:Path.separator()
         \)
-  for key in keys
-    call s:registry.remove(key)
+  for key in s:registry.keys()
+    if key =~# '^' . pattern
+      call s:registry.remove(key)
+    endif
   endfor
+  call s:registry.remove(git.worktree)
 endfunction
 
+function! s:relpath(git, abspath) abort
+  let abspath = s:Path.realpath(s:_expand(a:abspath))
+  if s:Path.is_relative(abspath)
+    return abspath
+  endif
+  let pattern = s:String.escape_pattern(a:git.worktree . s:Path.separator())
+  return abspath =~# '^' . pattern
+        \ ? matchstr(abspath, '^' . pattern . '\zs.*')
+        \ : abspath
+endfunction
+
+function! s:abspath(git, relpath) abort
+  let relpath = s:Path.realpath(s:_expand(a:relpath))
+  if s:Path.is_absolute(relpath)
+    return relpath
+  endif
+  return s:Path.join(a:git.worktree, relpath)
+endfunction
 
 " Private --------------------------------------------------------------------
+function! s:_expand(path) abort
+  return expand(escape(a:path, '\'))
+endfunction
+
 function! s:_normalize(path) abort
-  return simplify(s:Path.abspath(s:Path.realpath(a:path)))
+  let path = s:_expand(a:path)
+  let dirpath = isdirectory(path) ? path : fnamemodify(path, ':p:h')
+  return simplify(s:Path.abspath(s:Path.realpath(path)))
 endfunction
 
-function! s:_fnamemodify(path, mods) abort
-  if empty(a:path)
-    return ''
-  endif
-  return s:Path.remove_last_separator(fnamemodify(a:path, a:mods))
-endfunction
+function! s:_retrieve(path) abort
+  let dirpath = s:_normalize(a:path)
 
-function! s:_find(dirpath) abort
-  let meta = {
-        \ 'worktree': '',
-        \ 'repository': '',
-        \ 'commondir': '',
-        \}
-  " Find a worktree from an absolute directory path {dirpath}
-  let dgit = s:_fnamemodify(finddir('.git',  fnameescape(a:dirpath) . ';'), ':p:h')
-  let fgit = s:_fnamemodify(findfile('.git', fnameescape(a:dirpath) . ';'), ':p')
-  " Use deepest dotgit found
-  let dotgit = strlen(dgit) >= strlen(fgit) ? dgit : fgit
-  let meta.worktree = simplify(strlen(dotgit) ? s:_fnamemodify(dotgit, ':h') : '')
-  if empty(meta.worktree)
-    return meta
+  " Find worktree
+  let dgit = finddir('.git', fnameescape(dirpath) . ';')
+  let dgit = empty(dgit) ? '' : fnamemodify(dgit, ':p:h')
+  let fgit = findfile('.git', fnameescape(dirpath) . ';')
+  let fgit = empty(fgit) ? '' : fnamemodify(fgit, ':p')
+  let worktree = len(dgit) > len(fgit) ? dgit : fgit
+  let worktree = empty(worktree) ? '' : fnamemodify(worktree, ':h')
+  if empty(worktree)
+    return {}
   endif
-  " Find a dot git directory
-  let meta.repository = s:Path.join(meta.worktree, '.git')
-  if filereadable(meta.repository)
+
+  " Find repository
+  let repository = s:Path.join(worktree, '.git')
+  if filereadable(repository)
     " A '.git' may be a file which was created by '--separate-git-dir' option
-    let lines = readfile(meta.repository)
+    let lines = readfile(repository)
     if empty(lines)
       throw printf(
             \ 'vital: Git: An invalid .git file has found at "%s".',
-            \ meta.repository,
+            \ repository,
             \)
     endif
     let gitdir = matchstr(lines[0], '^gitdir:\s*\zs.\+$')
     let is_abs = s:Path.is_absolute(gitdir)
-    let meta.repository = simplify(s:_fnamemodify(
-          \ (is_abs ? gitdir : meta.repository[:-5] . gitdir),
-          \ ':p:h'
-          \))
+    let repository = is_abs ? gitdir : repository[:-5] . gitdir
+    let repository = empty(repository) ? '' : fnamemodify(repository, ':p:h')
   endif
-  " Check if the repository found is a linked or an original
-  if filereadable(s:Path.join(meta.repository, 'commondir'))
-    let commondir = readfile(s:Path.join(meta.repository, 'commondir'))[0]
-    let meta.commondir = simplify(s:Path.join(meta.repository, commondir))
+
+  " Find commondir
+  let commondir = ''
+  if filereadable(s:Path.join(repository, 'commondir'))
+    let commondir = readfile(s:Path.join(repository, 'commondir'))[0]
+    let commondir = s:Path.join(repository, commondir)
   endif
-  return meta
+
+  return {
+        \ 'worktree': simplify(worktree),
+        \ 'repository': simplify(repository),
+        \ 'commondir': simplify(commondir),
+        \}
 endfunction
 
 function! s:_new(meta) abort
-  if empty(a:meta.worktree)
-    return {}
-  endif
-  let git = extend(deepcopy(a:meta), s:git)
-  let git.repo = extend({'__owner__': git}, s:repo)
+  let git = copy(a:meta)
   let git.cache = s:Cache.new()
+  let git.expire = function('s:expire', [git])
+  let git.relpath = function('s:relpath', [git])
+  let git.abspath = function('s:abspath', [git])
   lockvar git.worktree
   lockvar git.repository
   lockvar git.commondir
+  lockvar 1 git.cache
+  lockvar git.expire
+  lockvar git.relpath
+  lockvar git.abspath
   return git
 endfunction

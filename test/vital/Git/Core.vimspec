@@ -1,0 +1,194 @@
+" Note:
+" git worktree has introduced from Git 2.5
+" https://github.com/blog/2042-git-2-5-including-multiple-worktrees-and-triangular-workflows
+let s:support_worktree = get(g:git_supported, 'worktree', 1)
+
+
+Describe Git.Core
+  Before all
+    call g:git_tester.attach(l:)
+    let Path = vital#vital#import('System.Filepath')
+    let Git = vital#giit#import('Git')
+  End
+
+  Before
+    let GitCore = vital#giit#import('Git.Core')
+  End
+
+  After
+    call Git.expire()
+  End
+
+  Describe .bind()
+    It binds methods to a {git} instance
+      let git = Git.get(f_inside1)
+      call GitCore.bind(git)
+
+      Assert KeyExists(git, 'core')
+      Assert KeyExists(git.core, 'expand')
+      Assert KeyExists(git.core, 'readfile')
+      Assert KeyExists(git.core, 'readline')
+      Assert KeyExists(git.core, 'filereadable')
+      Assert KeyExists(git.core, 'isdirectory')
+      Assert KeyExists(git.core, 'getftime')
+      Assert True(islocked('git.core'))
+      Assert True(islocked('git.core.expand'))
+      Assert True(islocked('git.core.readfile'))
+      Assert True(islocked('git.core.readline'))
+      Assert True(islocked('git.core.filereadable'))
+      Assert True(islocked('git.core.isdirectory'))
+      Assert True(islocked('git.core.getftime'))
+    End
+
+    It does not bind if a {git} instance already has binded
+      let git = Git.get(f_inside1)
+      let git.core = {}
+      call GitCore.bind(git)
+
+      Assert KeyExists(git, 'core')
+      Assert KeyNotExists(git.core, 'expand')
+      Assert KeyNotExists(git.core, 'readfile')
+      Assert KeyNotExists(git.core, 'readline')
+      Assert KeyNotExists(git.core, 'filereadable')
+      Assert KeyNotExists(git.core, 'isdirectory')
+      Assert KeyNotExists(git.core, 'getftime')
+    End
+  End
+
+  Describe .expand()
+    It throws an exception when {relpath} is already an absolute path
+      let git = Git.get(f_inside1)
+      let abspath = Path.join(inside, '.git', 'config')
+      Throws /It requires a relative path/ GitCore.expand(git, abspath)
+    End
+
+    It returns an expanded real absolute path of {relpath} in .git directory
+      let git = Git.get(f_inside1)
+      let relpath = Path.unixpath('$USER/config')
+      let abspath = Path.join(inside, expand('.git/$USER/config'))
+      Assert Equals(GitCore.expand(git, relpath), abspath)
+
+      let git = Git.get(f_inside1)
+      let relpath = Path.winpath('$USER/config')
+      let abspath = Path.join(inside, expand('.git/$USER/config'))
+      Assert Equals(GitCore.expand(git, relpath), abspath)
+    End
+
+    if s:support_worktree
+      It returns an absolute path in a commondir instead if the file/directory is missing
+        let git = Git.get(f_worktree1)
+
+        " A file which exists in a coresitory of a worktree
+        let relpath = Path.unixpath('.git/worktrees/worktree/commondir')
+        let abspath = Path.join(inside, Path.realpath(relpath))
+        Assert Equals(GitCore.expand(git, 'commondir'), abspath)
+        let relpath = Path.winpath('.git/worktrees/worktree/commondir')
+        let abspath = Path.join(inside, Path.realpath(relpath))
+        Assert Equals(GitCore.expand(git, 'commondir'), abspath)
+
+        " A file which exists in a commondir
+        let relpath = Path.unixpath('.git/description')
+        let abspath = Path.join(inside, Path.realpath(relpath))
+        Assert Equals(GitCore.expand(git, 'description'), abspath)
+        let relpath = Path.winpath('.git/description')
+        let abspath = Path.join(inside, Path.realpath(relpath))
+        Assert Equals(GitCore.expand(git, 'description'), abspath)
+      End
+    endif
+  End
+
+  Describe .readfile()
+    It throws an exception when {relpath} is already an absolute path
+      let git = Git.get(f_inside1)
+      let abspath = Path.join(inside, '.git', 'config')
+      Throws /It requires a relative path/ GitCore.readfile(git, abspath)
+    End
+
+    It returns a contents list of {relpath} found in .git
+      let git = Git.get(f_inside1)
+      let content = readfile(Path.join(inside, '.git', 'config'))
+      Assert Equals(GitCore.readfile(git, 'config'), content)
+    End
+
+    It returns an empty list if {relpath} does not exist
+      let git = Git.get(f_inside1)
+      let content = []
+      Assert Equals(GitCore.readfile(git, 'DOES NOT EXIST'), content)
+    End
+  End
+
+  Describe .readline()
+    It throws an exception when {relpath} is already an absolute path
+      let git = Git.get(f_inside1)
+      let abspath = Path.join(inside, '.git', 'config')
+      Throws /It requires a relative path/ GitCore.readline(git, abspath)
+    End
+
+    It returns a content string of {relpath} found in .git
+      let git = Git.get(f_inside1)
+      let content = readfile(Path.join(inside, '.git', 'config'))[0]
+      Assert Equals(GitCore.readline(git, 'config'), content)
+    End
+
+    It returns an empty string if {relpath} does not exist
+      let git = Git.get(f_inside1)
+      let content = ''
+      Assert Equals(GitCore.readline(git, 'DOES NOT EXIST'), content)
+    End
+  End
+
+  Describe .filereadable()
+    It throws an exception when {relpath} is already an absolute path
+      let git = Git.get(f_inside1)
+      let abspath = Path.join(inside, '.git', 'config')
+      Throws /It requires a relative path/ GitCore.filereadable(git, abspath)
+    End
+
+    It returns 1 if {relpath} found in .git
+      let git = Git.get(f_inside1)
+      Assert Equals(GitCore.filereadable(git, 'config'), 1)
+    End
+
+    It returns 0 if {relpath} does not exist in .git
+      let git = Git.get(f_inside1)
+      Assert Equals(GitCore.filereadable(git, 'DOES NOT EXIST'), 0)
+    End
+  End
+
+  Describe .isdirectory()
+    It throws an exception when {relpath} is already an absolute path
+      let git = Git.get(f_inside1)
+      let abspath = Path.join(inside, '.git', 'config')
+      Throws /It requires a relative path/ GitCore.isdirectory(git, abspath)
+    End
+
+    It returns 1 if {relpath} found in .git
+      let git = Git.get(f_inside1)
+      Assert Equals(GitCore.isdirectory(git, 'refs'), 1)
+    End
+
+    It returns 0 if {relpath} does not exist in .git
+      let git = Git.get(f_inside1)
+      Assert Equals(GitCore.isdirectory(git, 'DOES NOT EXIST'), 0)
+    End
+  End
+
+  Describe .getftime()
+    It throws an exception when {relpath} is already an absolute path
+      let git = Git.get(f_inside1)
+      let abspath = Path.join(inside, '.git', 'config')
+      Throws /It requires a relative path/ GitCore.getftime(git, abspath)
+    End
+
+    It returns ftime of {path} found in .git
+      let git = Git.get(f_inside1)
+      let ftime = getftime(Path.join(inside, '.git', 'config'))
+      Assert Equals(GitCore.getftime(git, 'config'), ftime)
+    End
+
+    It returns -1 if {relpath} does not exist in .git
+      let git = Git.get(f_inside1)
+      Assert Equals(GitCore.getftime(git, 'DOES NOT EXIST'), -1)
+    End
+  End
+End
