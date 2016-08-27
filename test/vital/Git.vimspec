@@ -2,6 +2,7 @@
 " git worktree has introduced from Git 2.5
 " https://github.com/blog/2042-git-2-5-including-multiple-worktrees-and-triangular-workflows
 let s:support_worktree = get(g:git_supported, 'worktree', 1)
+let s:is_windows = has('win32') || has('win64')
 
 
 Describe Git
@@ -170,6 +171,7 @@ Describe Git
       Assert Equals(retpath, Path.realpath(printf('foo/%s/hoge.txt', expand('$USER'))))
 
       let relpath = Path.winpath('foo/$USER/hoge.txt')
+      let relpath = s:is_windows ? relpath : escape(relpath, '\')
       let retpath = Git.relpath(git, relpath)
       Assert Equals(retpath, Path.realpath(printf('foo/%s/hoge.txt', expand('$USER'))))
     End
@@ -181,6 +183,7 @@ Describe Git
       Assert Equals(retpath, Path.realpath(printf('foo/%s/hoge.txt', expand('$USER'))))
 
       let abspath = Path.winpath(Path.join(inside, 'foo/$USER/hoge.txt'))
+      let abspath = s:is_windows ? abspath : escape(abspath, '\')
       let retpath = Git.relpath(git, abspath)
       Assert Equals(retpath, Path.realpath(printf('foo/%s/hoge.txt', expand('$USER'))))
     End
@@ -194,6 +197,7 @@ Describe Git
       Assert Equals(retpath, Path.realpath(Path.join(inside, printf('foo/%s/hoge.txt', expand('$USER')))))
 
       let abspath = Path.winpath(Path.join(inside, 'foo/$USER/hoge.txt'))
+      let abspath = s:is_windows ? abspath : escape(abspath, '\')
       let retpath = Git.abspath(git, abspath)
       Assert Equals(retpath, Path.realpath(Path.join(inside, printf('foo/%s/hoge.txt', expand('$USER')))))
     End
@@ -205,6 +209,7 @@ Describe Git
       Assert Equals(retpath, Path.realpath(Path.join(inside, printf('foo/%s/hoge.txt', expand('$USER')))))
 
       let relpath = Path.winpath('foo/$USER/hoge.txt')
+      let relpath = s:is_windows ? relpath : escape(relpath, '\')
       let retpath = Git.abspath(git, relpath)
       Assert Equals(retpath, Path.realpath(Path.join(inside, printf('foo/%s/hoge.txt', expand('$USER')))))
     End
