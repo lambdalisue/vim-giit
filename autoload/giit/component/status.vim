@@ -92,6 +92,9 @@ function! s:initialize_buffer(static_options) abort
   augroup END
 
   setlocal buftype=nofile nobuflisted
-  setlocal filetype=giit-status
+  setlocal filetype=gitcommit
   setlocal winfixheight
+
+  nnoremap <buffer><silent> <Plug>(giit-switch-commit) :<C-u>Giit commit<CR>
+  nmap <buffer><nowait> <C-^> <Plug>(giit-switch-commit)
 endfunction
