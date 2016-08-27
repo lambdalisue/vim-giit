@@ -141,11 +141,8 @@ function! s:get_last_commitmsg(git, ...) abort
   let result = s:GitProcess.execute(a:git, [
         \ 'log', '-1', '--pretty=%B',
         \])
-  if !result.success
-    if options.fail_silently
-      return []
-    endif
-    call s:GitProcess.throw(result)
+  if result.status
+    return result
   endif
   return result.content
 endfunction
