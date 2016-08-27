@@ -92,7 +92,7 @@ function! s:new_refinfo(expr) abort
   return {
         \ 'refname': refname,
         \ 'buftype': buftype,
-        \ 'bufname': empty(bufname) ? '' : s:Path.abspath(bufname),
+        \ 'bufname': empty(bufname) ? '' : fnamemodify(bufname, ':p'),
         \ 'cwd': cwd,
         \}
 endfunction
@@ -112,7 +112,7 @@ function! s:get_refinfo(expr) abort
   " Use cached refinfo when the cache is fresh enough
   if empty(refname) && index(['nofile', 'quickfix', 'help'], buftype) == -1
     " File like
-    if !empty(refinfo) && !empty(bufname) && s:Path.abspath(bufname) ==# refinfo.bufname
+    if !empty(refinfo) && !empty(bufname) && fnamemodify(bufname, ':p') ==# refinfo.bufname
       return refinfo
     endif
   else
