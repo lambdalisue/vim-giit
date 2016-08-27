@@ -40,7 +40,7 @@ function! giit#operation#patch#execute(git, options) abort
             \)
     endif
     call writefile(diff_content, tempfile)
-    let result = a:gitexecute([
+    let result = a:git.execute([
           \ 'apply',
           \ '--verbose',
           \ '--cached',
