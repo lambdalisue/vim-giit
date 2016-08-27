@@ -54,13 +54,17 @@ function! s:binder.get_action(name_or_alias) abort
   let name = has_key(self.aliases, a:name_or_alias)
         \ ? self.aliases[a:name_or_alias]
         \ : a:name_or_alias
-  if !has_key(self.actions, name)
+  let actions = sort(
+        \ filter(values(self.actions), 'v:val.name =~# ''^'' . name'),
+        \ 's:_compare_action_priority',
+        \)
+  if empty(actions)
     echohl WarningMsg
     echo printf('No action %s is found.', name)
     echohl None
     return {}
   endif
-  return self.actions[name]
+  return get(actions, 0)
 endfunction
 
 function! s:binder.define(name, callback, ...) abort
@@ -75,6 +79,7 @@ function! s:binder.define(name, callback, ...) abort
         \ 'options': {},
         \ 'default': 0,
         \ 'hidden': 0,
+        \ 'priority': 0,
         \}, get(a:000, 0, {}),
         \)
   if empty(action.mapping)
@@ -226,6 +231,14 @@ function! s:_compare(i1, i2) abort
   return a:i1[0] == a:i2[0] ? 0 : a:i1[0] > a:i2[0] ? 1 : -1
 endfunction
 
+function! s:_compare_action_priority(i1, i2) abort
+  if a:i1.priority == a:i2.priority
+    return len(a:i1.name) - len(a:i2.name)
+  else
+    return a:i1.priority > a:i2.priority ? 1 : -1
+  endif
+endfunction
+
 function! s:_find_mappings(binder) abort
   try
     redir => content
@@ -258,6 +271,7 @@ function! s:_complete_action_aliases(arglead, cmdline, cursorpos) abort
   if empty(a:arglead)
     call filter(actions, '!v:val.hidden')
   endif
+  call sort(actions, 's:_compare_action_priority')
   return filter(map(actions, 'v:val.alias'), 'v:val =~# ''^'' . a:arglead')
 endfunction
 
