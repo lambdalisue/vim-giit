@@ -13,13 +13,9 @@ endfunction
 
 function! giit#operation#status#execute(git, options) abort
   let args = s:build_args(a:git, a:options)
-  let result = a:git.execute(args, {
+  return a:git.execute(args, {
         \ 'encode_output': 0,
         \})
-  if result.status
-    call giit#throw(result)
-  endif
-  return result
 endfunction
 
 function! giit#operation#status#command(bang, range, args) abort

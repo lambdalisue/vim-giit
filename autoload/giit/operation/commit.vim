@@ -13,13 +13,9 @@ endfunction
 function! giit#operation#commit#execute(git, options) abort
   let args = s:build_args(a:git, a:options)
   let mode = s:build_mode(a:git, a:options)
-  let result = a:git.execute(args, {
+  return a:git.execute(args, {
         \ 'encode_output': 0,
         \})
-  if (result.success && mode ==# 'edit') || (result.status && mode ==# 'no-edit')
-    call giit#throw(result)
-  endif
-  return result
 endfunction
 
 function! giit#operation#commit#command(bang, range, args) abort
@@ -51,6 +47,7 @@ function! s:build_args(git, options) abort
         \ 'allow-empty': 1,
         \ 'allow-empty-message': 1,
         \ 'verbose': 1,
+        \ 'cleanup': 1,
         \})
   let args = [
         \ 'commit',

@@ -73,7 +73,7 @@ function! s:commit(git, options) abort
         \ 'no-edit',
         \])
   let options.file = s:Path.join(a:git.repository, 'COMMIT_EDITMSG')
-  let options.cleanup = 'strip'
+  let options.cleanup = get(options, 'cleanup', 'strip')
   let result = giit#operation#commit#execute(a:git, options)
-  call s:Prompt.echo('Title', result.content)
+  call giit#operation#display_result(result, a:options)
 endfunction

@@ -5,6 +5,7 @@ let s:DictOption = vital#giit#import('Data.Dict.Option')
 let s:GitProcess = vital#giit#import('Git.Process')
 
 
+" Pubic ----------------------------------------------------------------------
 function! giit#operation#command(bang, range, args) abort
   let parser  = s:get_parser()
   let options = parser.parse(a:bang, a:range, a:args)
@@ -72,6 +73,22 @@ function! giit#operation#complete(arglead, cmdline, cursorpos) abort
   return parser.complete(a:arglead, a:cmdline, a:cursorpos)
 endfunction
 
+function! giit#operation#display_result(result, options) abort
+  if get(a:options, 'quiet')
+    return
+  endif
+  let [hl, prefix] = a:result.status
+        \ ? ['WarningMsg', 'Fail']
+        \ : ['Title', 'OK']
+  redraw
+  call s:Prompt.echomsg(hl, prefix . ': ' . join(a:result.args))
+  for line in a:result.content
+    call s:Prompt.echomsg('None', line)
+  endfor
+endfunction
+
+
+" Private --------------------------------------------------------------------
 function! s:complete_command(arglead, cmdline, cursorpos, ...) abort
   let candidates = filter([
       \ 'add',

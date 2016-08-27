@@ -40,7 +40,7 @@ function! giit#operation#patch#execute(git, options) abort
             \)
     endif
     call writefile(diff_content, tempfile)
-    let result = a:git.execute([
+    return a:git.execute([
           \ 'apply',
           \ '--verbose',
           \ '--cached',
@@ -50,12 +50,6 @@ function! giit#operation#patch#execute(git, options) abort
           \ '--',
           \ tempfile
           \])
-    if result.status
-      call giit#throw(result)
-    endif
-    return result
-  catch /^\%(vital: Git[:.]\|giit:\)/
-    call giit#handle_exception()
   finally
     call delete(tempfile)
   endtry
