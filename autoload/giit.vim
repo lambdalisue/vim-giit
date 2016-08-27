@@ -30,7 +30,7 @@ endfunction
 function! giit#expand(expr) abort
   let path = giit#meta#get_at(a:expr, 'filename', '')
   if empty(path)
-    let path = expand(escape(a:expr, '\'))
+    let path = expand(a:expr)
   endif
   return s:Path.remove_last_separator(path)
 endfunction

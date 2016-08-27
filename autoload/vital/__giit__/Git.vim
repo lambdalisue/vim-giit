@@ -53,7 +53,7 @@ function! s:expire(...) abort
 endfunction
 
 function! s:relpath(git, abspath) abort
-  let abspath = s:Path.realpath(s:_expand(a:abspath))
+  let abspath = s:Path.realpath(expand(a:abspath))
   if s:Path.is_relative(abspath)
     return abspath
   endif
@@ -64,7 +64,7 @@ function! s:relpath(git, abspath) abort
 endfunction
 
 function! s:abspath(git, relpath) abort
-  let relpath = s:Path.realpath(s:_expand(a:relpath))
+  let relpath = s:Path.realpath(expand(a:relpath))
   if s:Path.is_absolute(relpath)
     return relpath
   endif
@@ -73,12 +73,8 @@ endfunction
 
 
 " Private --------------------------------------------------------------------
-function! s:_expand(path) abort
-  return expand(escape(a:path, '\'))
-endfunction
-
 function! s:_normalize(path) abort
-  let path = s:_expand(a:path)
+  let path = expand(a:path)
   let dirpath = isdirectory(path) ? path : fnamemodify(path, ':p:h')
   return simplify(s:Path.abspath(s:Path.realpath(path)))
 endfunction
