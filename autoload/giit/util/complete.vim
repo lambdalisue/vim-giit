@@ -34,13 +34,13 @@ function! s:get_available_filenames(git, args) abort
 endfunction
 
 function! giit#util#complete#branch(arglead, cmdline, cursorpos, ...) abort
+  let name = s:get_cache_name(expand('<sfile>'))
   try
     let git = giit#core#get_or_fail()
-    let slug = matchstr(expand('<sfile>'), '\.\.\zs[^.]*$')
-    let candidates = s:Git.get_cached_content(git, slug, 'config', [])
+    let candidates = git.get_cached_content(name, 'config', [])
     if empty(candidates)
       let candidates = s:get_available_branches(git, ['--all'])
-      call s:Git.set_cached_content(git, slug, 'config', candidates)
+      call git.set_cached_content(name, 'config', candidates)
     endif
     return filter(copy(candidates), 'v:val =~# ''^'' . a:arglead')
   catch
@@ -51,13 +51,13 @@ function! giit#util#complete#branch(arglead, cmdline, cursorpos, ...) abort
 endfunction
 
 function! giit#util#complete#local_branch(arglead, cmdline, cursorpos, ...) abort
+  let name = s:get_cache_name(expand('<sfile>'))
   try
     let git = giit#core#get_or_fail()
-    let slug = matchstr(expand('<sfile>'), '\.\.\zs[^.]*$')
-    let candidates = s:Git.get_cached_content(git, slug, 'config', [])
+    let candidates = git.get_cached_content(name, 'config', [])
     if empty(candidates)
       let candidates = s:get_available_branches(git, [])
-      call s:Git.set_cached_content(git, slug, 'config', candidates)
+      call git.set_cached_content(name, 'config', candidates)
     endif
     return filter(copy(candidates), 'v:val =~# ''^'' . a:arglead')
   catch
@@ -68,13 +68,13 @@ function! giit#util#complete#local_branch(arglead, cmdline, cursorpos, ...) abor
 endfunction
 
 function! giit#util#complete#remote_branch(arglead, cmdline, cursorpos, ...) abort
+  let name = s:get_cache_name(expand('<sfile>'))
   try
     let git = giit#core#get_or_fail()
-    let slug = matchstr(expand('<sfile>'), '\.\.\zs[^.]*$')
-    let candidates = s:Git.get_cached_content(git, slug, 'config', [])
+    let candidates = git.get_cached_content(name, 'config', [])
     if empty(candidates)
       let candidates = s:get_available_branches(git, ['--remotes'])
-      call s:Git.set_cached_content(git, slug, 'config', candidates)
+      call git.set_cached_content(name, 'config', candidates)
     endif
     return filter(copy(candidates), 'v:val =~# ''^'' . a:arglead')
   catch
@@ -85,13 +85,13 @@ function! giit#util#complete#remote_branch(arglead, cmdline, cursorpos, ...) abo
 endfunction
 
 function! giit#util#complete#commit(arglead, cmdline, cursorpos, ...) abort
+  let name = s:get_cache_name(expand('<sfile>'))
   try
     let git = giit#core#get_or_fail()
-    let slug = matchstr(expand('<sfile>'), '\.\.\zs[^.]*$')
-    let candidates = s:Git.get_cached_content(git, slug, 'index', [])
+    let candidates = git.get_cached_content(name, 'index', [])
     if empty(candidates)
       let candidates = s:get_available_commits(git, [])
-      call s:Git.set_cached_content(git, slug, 'index', candidates)
+      call git.set_cached_content(name, 'index', candidates)
     endif
     return filter(copy(candidates), 'v:val =~# ''^'' . a:arglead')
   catch
@@ -102,14 +102,14 @@ function! giit#util#complete#commit(arglead, cmdline, cursorpos, ...) abort
 endfunction
 
 function! giit#util#complete#commitish(arglead, cmdline, cursorpos, ...) abort
+  let name = s:get_cache_name(expand('<sfile>'))
   try
     let git = giit#core#get_or_fail()
-    let slug = matchstr(expand('<sfile>'), '\.\.\zs[^.]*$')
-    let candidates = s:Git.get_cached_content(git, slug, 'index', [])
+    let candidates = git.get_cached_content(name, 'index', [])
     if empty(candidates)
       let candidates = s:get_available_branches(git, ['--all'])
       let candidates += s:get_available_commits(git, [])
-      call s:Git.set_cached_content(git, slug, 'index', candidates)
+      call git.set_cached_content(name, 'index', candidates)
     endif
     return filter(copy(candidates), 'v:val =~# ''^'' . a:arglead')
   catch
@@ -120,13 +120,14 @@ function! giit#util#complete#commitish(arglead, cmdline, cursorpos, ...) abort
 endfunction
 
 function! giit#util#complete#cached_filename(arglead, cmdline, cursorpos, ...) abort
+  let name = s:get_cache_name(expand('<sfile>'))
   try
     let git = giit#core#get_or_fail()
     let slug = matchstr(expand('<sfile>'), '\.\.\zs[^.]*$')
-    let candidates = s:Git.get_cached_content(git, slug, 'index', [])
+    let candidates = git.get_cached_content(name, 'index', [])
     if empty(candidates)
       let candidates = s:get_available_filenames(git, ['--cached'])
-      call s:Git.set_cached_content(git, slug, 'index', candidates)
+      call git.set_cached_content(name, 'index', candidates)
     endif
     return filter(copy(candidates), 'v:val =~# ''^'' . a:arglead')
   catch
@@ -137,13 +138,14 @@ function! giit#util#complete#cached_filename(arglead, cmdline, cursorpos, ...) a
 endfunction
 
 function! giit#util#complete#deleted_filename(arglead, cmdline, cursorpos, ...) abort
+  let name = s:get_cache_name(expand('<sfile>'))
   try
     let git = giit#core#get_or_fail()
     let slug = matchstr(expand('<sfile>'), '\.\.\zs[^.]*$')
-    let candidates = s:Git.get_cached_content(git, slug, 'index', [])
+    let candidates = git.get_cached_content(name, 'index', [])
     if empty(candidates)
       let candidates = s:get_available_filenames(git, ['--deleted'])
-      call s:Git.set_cached_content(git, slug, 'index', candidates)
+      call git.set_cached_content(name, 'index', candidates)
     endif
     return filter(copy(candidates), 'v:val =~# ''^'' . a:arglead')
   catch
@@ -154,13 +156,14 @@ function! giit#util#complete#deleted_filename(arglead, cmdline, cursorpos, ...) 
 endfunction
 
 function! giit#util#complete#modified_filename(arglead, cmdline, cursorpos, ...) abort
+  let name = s:get_cache_name(expand('<sfile>'))
   try
     let git = giit#core#get_or_fail()
     let slug = matchstr(expand('<sfile>'), '\.\.\zs[^.]*$')
-    let candidates = s:Git.get_cached_content(git, slug, '.', '')
+    let candidates = git.get_cached_content(name, '.', '')
     if empty(candidates)
       let candidates = s:get_available_filenames(git, ['--modified'])
-      call s:Git.set_cached_content(git, slug, '.', candidates)
+      call git.set_cached_content(name, '.', candidates)
     endif
     return filter(copy(candidates), 'v:val =~# ''^'' . a:arglead')
   catch
@@ -231,4 +234,9 @@ function! giit#util#complete#directory(arglead, cmdline, cursorpos, ...) abort
     call map(candidates, 'fnameescape(v:val, '':~'')')
   endif
   return candidates
+endfunction
+
+
+function! s:get_cache_name(sfile) abort
+  return matchstr(a:sfile, '\.\.\zs[^.]*$')
 endfunction
