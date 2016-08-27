@@ -71,6 +71,7 @@ function! s:abspath(git, relpath) abort
   return s:Path.join(a:git.worktree, relpath)
 endfunction
 
+
 " Private --------------------------------------------------------------------
 function! s:_expand(path) abort
   return expand(escape(a:path, '\'))

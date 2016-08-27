@@ -1,3 +1,9 @@
+function! s:touch(filename) abort
+  let content = readfile(a:filename, 'b')
+  call writefile([], a:filename, 'b')
+  call writefile(content, a:filename, 'b')
+endfunction
+
 " Note:
 " git worktree has introduced from Git 2.5
 " https://github.com/blog/2042-git-2-5-including-multiple-worktrees-and-triangular-workflows
@@ -31,6 +37,8 @@ Describe Git.Core
       Assert KeyExists(git.core, 'filereadable')
       Assert KeyExists(git.core, 'isdirectory')
       Assert KeyExists(git.core, 'getftime')
+      Assert KeyExists(git.core, 'get_cached_content')
+      Assert KeyExists(git.core, 'set_cached_content')
       Assert True(islocked('git.core'))
       Assert True(islocked('git.core.expand'))
       Assert True(islocked('git.core.readfile'))
@@ -38,6 +46,8 @@ Describe Git.Core
       Assert True(islocked('git.core.filereadable'))
       Assert True(islocked('git.core.isdirectory'))
       Assert True(islocked('git.core.getftime'))
+      Assert True(islocked('git.core.get_cached_content'))
+      Assert True(islocked('git.core.set_cached_content'))
     End
 
     It does not bind if a {git} instance already has binded
@@ -52,6 +62,8 @@ Describe Git.Core
       Assert KeyNotExists(git.core, 'filereadable')
       Assert KeyNotExists(git.core, 'isdirectory')
       Assert KeyNotExists(git.core, 'getftime')
+      Assert KeyNotExists(git.core, 'get_cached_content')
+      Assert KeyNotExists(git.core, 'set_cached_content')
     End
   End
 
@@ -189,6 +201,66 @@ Describe Git.Core
     It returns -1 if {relpath} does not exist in .git
       let git = Git.get(f_inside1)
       Assert Equals(GitCore.getftime(git, 'DOES NOT EXIST'), -1)
+    End
+  End
+
+ Describe .get_cached_content()
+    It returns {default} when no cache for {name} and {depends} is found
+      let git = Git.get(inside)
+      let default1 = {}
+      let default2 = {}
+      let content1 = GitCore.get_cached_content(git, 'slug1', 'index', default1)
+      let content2 = GitCore.get_cached_content(git, 'slug1', 'index', default2)
+      Assert Equals(content1, default1)
+      Assert Equals(content2, default2)
+      Assert Equals(content1, content2)
+      Assert Same(content1, default1)
+      Assert Same(content2, default2)
+      Assert NotSame(content1, content2)
+    End
+
+    It returns a cached content if a cache for {name} and {depends} is found
+      let git = Git.get(inside)
+      let cached = { 'foo': 'bar' }
+      call GitCore.set_cached_content(git, 'slug2', 'description', cached)
+      let content1 = GitCore.get_cached_content(git, 'slug2', 'description')
+      let content2 = GitCore.get_cached_content(git, 'slug2', 'description')
+      Assert Equals(content1, cached)
+      Assert Equals(content2, cached)
+      Assert Equals(content1, content2)
+      Assert Same(content1, cached)
+      Assert Same(content2, cached)
+      Assert Same(content1, content2)
+    End
+
+    It returns {default} when a cache for {name} and {depends} is found but out-date
+      let git = Git.get(inside)
+      let cached = { 'foo': 'bar' }
+      call GitCore.set_cached_content(git, 'slug3', 'description', cached)
+      let default1 = {}
+      let default2 = {}
+      let content1 = GitCore.get_cached_content(git, 'slug3', 'description', default1)
+      " Update dependencies
+      sleep | call s:touch(Path.join(inside, '.git', 'description'))
+      let content2 = GitCore.get_cached_content(git, 'slug3', 'description', default2)
+      Assert Equals(content1, cached)
+      Assert Equals(content2, default2)
+      Assert NotEquals(content1, content2)
+      Assert Same(content1, cached)
+      Assert Same(content2, default2)
+      Assert NotSame(content1, content2)
+    End
+  End
+
+  Describe .set_cached_content()
+    It update a cached content of {name} and {depends}
+      let git = Git.get(inside)
+      let cached = { 'foo': 'bar' }
+      call GitCore.set_cached_content(git, 'slug', 'index', cached)
+      let default = {} 
+      let content = GitCore.get_cached_content(git, 'slug', 'index', default)
+      Assert Equals(content, cached)
+      Assert Same(content, cached)
     End
   End
 End

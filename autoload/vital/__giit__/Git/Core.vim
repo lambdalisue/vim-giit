@@ -21,6 +21,8 @@ function! s:bind(git) abort
         \ 'filereadable',
         \ 'isdirectory',
         \ 'getftime',
+        \ 'get_cached_content',
+        \ 'set_cached_content',
         \]
   let a:git.core = {}
   for method in methods
@@ -73,6 +75,38 @@ function! s:getftime(git, relpath) abort
   return getftime(path)
 endfunction
 
+function! s:set_cached_content(git, name, depends, content) abort
+  let depends = type(a:depends) == type([]) ? a:depends : [a:depends]
+  call sort(filter(
+        \ map(depends, 's:Path.realpath(v:val)'),
+        \ 's:filereadable(a:git, v:val)',
+        \))
+  let uptimes = map(copy(depends), 's:getftime(a:git, v:val)')
+  call a:git.cache.set(a:name . ':' . string(depends), {
+        \ 'uptimes': uptimes,
+        \ 'content': a:content,
+        \})
+endfunction
+
+function! s:get_cached_content(git, name, depends, ...) abort
+  let depends = type(a:depends) == type([]) ? a:depends : [a:depends]
+  let default = a:0 > 0 ? a:1 : {}
+  call sort(filter(
+        \ map(depends, 's:Path.realpath(v:val)'),
+        \ 's:filereadable(a:git, v:val)',
+        \))
+  let cached = a:git.cache.get(a:name . ':' . string(depends), {})
+  if empty(cached)
+    return default
+  endif
+  for index in range(len(depends))
+    let uptime = s:getftime(a:git, depends[index])
+    if uptime == -1 || uptime > cached.uptimes[index]
+      return default
+    endif
+  endfor
+  return cached.content
+endfunction
 
 " Private --------------------------------------------------------------------
 function! s:_expand(path) abort
