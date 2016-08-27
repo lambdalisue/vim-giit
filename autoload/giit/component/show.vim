@@ -1,6 +1,5 @@
 let s:Buffer = vital#giit#import('Vim.Buffer')
 let s:BufferAnchor = vital#giit#import('Vim.Buffer.Anchor')
-let s:GitProcess = vital#giit#import('Git.Process')
 
 
 function! giit#component#show#open(git, options) abort
@@ -59,7 +58,7 @@ function! s:on_BufReadCmd() abort
         \ giit#meta#require('options')
         \)
   if result.status
-    call s:GitProcess.throw(result)
+    call giit#throw(result)
   endif
   call s:Buffer.edit_content(result.content)
   call giit#util#doautocmd('BufRead')
@@ -72,7 +71,7 @@ function! s:on_BufWriteCmd() abort
         \ 'content': getline(1, '$'),
         \})
   if result.status
-    call s:GitProcess.throw(result)
+    call giit#throw(result)
   endif
   setlocal nomodified
 endfunction

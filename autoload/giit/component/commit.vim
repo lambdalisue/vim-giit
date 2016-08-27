@@ -1,6 +1,5 @@
 let s:Path = vital#giit#import('System.Filepath')
 let s:Dict = vital#giit#import('Data.Dict')
-let s:Git = vital#giit#import('Git')
 let s:Prompt = vital#giit#import('Vim.Prompt')
 let s:BufferAnchor = vital#giit#import('Vim.Buffer.Anchor')
 let s:BufferObserver = vital#giit#import('Vim.Buffer.Observer')

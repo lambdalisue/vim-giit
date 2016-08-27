@@ -16,7 +16,7 @@ function! giit#operation#command(bang, range, args) abort
       if a:bang ==# '!'
         call s:GitProcess.shell(git, map(
               \ s:DictOption.split_args(a:args),
-              \ 'giit#core#expand(v:val)'
+              \ 'giit#expand(v:val)'
               \))
       else
         try
@@ -29,7 +29,7 @@ function! giit#operation#command(bang, range, args) abort
           " fail silently and execute git command
           call s:GitProcess.execute(git, map(
                 \ s:DictOption.split_args(a:args),
-                \ 'giit#core#expand(v:val)',
+                \ 'giit#expand(v:val)',
                 \))
         endtry
       endif

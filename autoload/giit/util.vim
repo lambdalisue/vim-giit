@@ -69,4 +69,3 @@ function! s:syncbind() abort
   augroup END
   syncbind
 endfunction
-

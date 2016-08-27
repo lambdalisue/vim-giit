@@ -1,6 +1,5 @@
 let s:BufferAnchor = vital#giit#import('Vim.Buffer.Anchor')
 let s:BufferObserver = vital#giit#import('Vim.Buffer.Observer')
-let s:GitProcess = vital#giit#import('Git.Process')
 let s:Action = vital#giit#import('Action')
 let s:Selector = vital#giit#import('Selector')
 
@@ -43,7 +42,7 @@ function! s:on_BufReadCmd() abort
         \ giit#meta#require('options')
         \)
   if result.status
-    call s:GitProcess.throw(result)
+    call giit#throw(result)
   endif
   let candidates = giit#operation#status#parse(
         \ git,

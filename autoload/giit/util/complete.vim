@@ -1,12 +1,10 @@
 let s:String = vital#giit#import('Data.String')
 let s:Path = vital#giit#import('System.Filepath')
 let s:Prompt = vital#giit#import('Vim.Prompt')
-let s:Git = vital#giit#import('Git')
-let s:GitProcess = vital#giit#import('Git.Process')
 
 function! s:get_available_branches(git, args) abort
   let args = ['branch', '--no-color', '--list'] + a:args
-  let result = s:GitProcess.execute(a:git, args)
+  let result = a:git.execute(args)
   if !result.success
     return []
   endif
@@ -16,7 +14,7 @@ endfunction
 
 function! s:get_available_commits(git, args) abort
   let args = ['log', '--pretty=%h'] + a:args
-  let result = s:GitProcess.execute(a:git, args)
+  let result = a:git.execute(args)
   if !result.success
     return []
   endif
@@ -27,7 +25,7 @@ function! s:get_available_filenames(git, args) abort
   let args = [
         \ 'ls-files', '--full-name',
         \] + a:args
-  let result = s:GitProcess.execute(a:git, args)
+  let result = a:git.execute(args)
   if !result.success
     return []
   endif

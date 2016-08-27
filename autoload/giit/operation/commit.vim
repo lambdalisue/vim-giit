@@ -1,6 +1,5 @@
 let s:ArgumentParser = vital#giit#import('ArgumentParser')
 let s:DictOption = vital#giit#import('Data.Dict.Option')
-let s:GitProcess = vital#giit#import('Git.Process')
 
 
 function! giit#operation#commit#correct(git, options) abort
@@ -14,11 +13,11 @@ endfunction
 function! giit#operation#commit#execute(git, options) abort
   let args = s:build_args(a:git, a:options)
   let mode = s:build_mode(a:git, a:options)
-  let result = s:GitProcess.execute(a:git, args, {
+  let result = a:git.execute(args, {
         \ 'encode_output': 0,
         \})
   if (result.success && mode ==# 'edit') || (result.status && mode ==# 'no-edit')
-    call s:GitProcess.throw(result)
+    call giit#throw(result)
   endif
   return result
 endfunction

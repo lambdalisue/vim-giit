@@ -10,12 +10,11 @@ endfunction
 
 Describe giit#core
   Before all
+    call g:git_tester.attach(l:)
     let Path = vital#vital#import('System.Filepath')
     let scope = themis#helper('scope')
     let sfile = Path.realpath('autoload/giit/core.vim')
     let sf = scope.funcs(sfile)
-    let inside = g:giit#test#inside
-    let outside = g:giit#test#outside
   End
 
   Before
@@ -24,26 +23,6 @@ Describe giit#core
 
   After
     let sv.refs = {}
-  End
-
-  Describe giit#core#expand()
-    It returns an expand real path of {expr}
-      let path = giit#core#expand('$USER/README.md')
-      let user = expand('$USER')
-      Assert Equals(path, Path.join(user, 'README.md'))
-    End
-
-    It returns an expand value of {expr} without a trailing slash
-      let path = giit#core#expand('$USER/autoload/')
-      let user = expand('$USER')
-      Assert Equals(path . Path.separator(), Path.join(user, 'autoload/'))
-    End
-
-    It returns a value of 'filename' in a meta of a {expr} buffer
-      call giit#meta#set('filename', 'foobar')
-      let path = giit#core#expand('%')
-      Assert Equals(path, 'foobar')
-    End
   End
 
   Describe giit#core#get()

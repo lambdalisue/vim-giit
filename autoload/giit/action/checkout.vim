@@ -1,6 +1,3 @@
-let s:GitProcess = vital#giit#import('Git.Process')
-
-
 function! giit#action#checkout#define(binder) abort
   call a:binder.define('checkout', function('s:on_checkout'), {
         \ 'description': 'Checkout a contents',
@@ -76,9 +73,9 @@ function! s:on_checkout(candidates, options) abort
         \ 'giit#util#normalize#relpath(git, v:val.path)',
         \)
   let args = filter(args, '!empty(v:val)')
-  let result = s:GitProcess.execute(git, args)
+  let result = git.execute(args)
   if result.status
-    call s:GitProcess.throw(result)
+    call giit#throw(result)
   endif
   call giit#trigger_modified()
 endfunction

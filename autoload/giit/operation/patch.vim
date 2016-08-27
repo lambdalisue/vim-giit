@@ -1,6 +1,5 @@
 let s:String = vital#giit#import('Data.String')
 let s:Prompt = vital#giit#import('Vim.Prompt')
-let s:GitProcess = vital#giit#import('Git.Process')
 let s:is_windows = has('win32') || has('win64')
 
 
@@ -11,7 +10,7 @@ function! giit#operation#patch#correct(git, options) abort
 
   let filename = get(a:options, 'filename', '')
   let filename = empty(filename)
-        \ ? giit#core#expand('%')
+        \ ? giit#expand('%')
         \ : filename
   let filename = giit#util#normalize#relpath(a:git, filename)
   let content = get(a:options, 'content', '')
@@ -41,7 +40,7 @@ function! giit#operation#patch#execute(git, options) abort
             \)
     endif
     call writefile(diff_content, tempfile)
-    let result = s:GitProcess.execute(a:git, [
+    let result = a:gitexecute([
           \ 'apply',
           \ '--verbose',
           \ '--cached',
@@ -52,7 +51,7 @@ function! giit#operation#patch#execute(git, options) abort
           \ tempfile
           \])
     if result.status
-      call s:GitProcess.throw(result)
+      call giit#throw(result)
     endif
     return result
   catch /^\%(vital: Git[:.]\|giit:\)/
@@ -99,7 +98,7 @@ function! s:get_diff_content(git, content, filename) abort
   let tempfile2 = tempfile . '.buffer'
   try
     " save contents to temporary files
-    let result = s:GitProcess.execute(a:git, ['show', ':' . a:filename])
+    let result = a:git.execute(['show', ':' . a:filename])
     " NOTE:
     " the file may not exist on cache so use an empty list in that case
     let content = result.success ? result.content : []
@@ -110,7 +109,7 @@ function! s:get_diff_content(git, content, filename) abort
     " --no-index force --exit-code option.
     " --exit-code mean that the program exits with 1 if there were differences
     " and 0 means no differences
-    let result = s:GitProcess.execute(a:git, [
+    let result = a:git.execute([
           \ 'diff',
           \ '--no-index',
           \ '--unified=1',

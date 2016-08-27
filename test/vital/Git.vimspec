@@ -6,8 +6,8 @@ let s:support_worktree = get(g:git_supported, 'worktree', 1)
 
 Describe Git
   Before all
-    let Path = vital#vital#import('System.Filepath')
     call g:git_tester.attach(l:)
+    let Path = vital#vital#import('System.Filepath')
   End
 
   Before

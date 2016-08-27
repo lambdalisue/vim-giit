@@ -1,3 +1,4 @@
+let s:Path = vital#giit#import('System.Filepath')
 let s:Prompt = vital#giit#import('Vim.Prompt')
 let s:BufferObserver = vital#giit#import('Vim.Buffer.Observer')
 
@@ -24,6 +25,14 @@ endfunction
 function! giit#handle_exception() abort
   call s:Prompt.error(v:exception)
   call s:Prompt.debug(v:throwpoint)
+endfunction
+
+function! giit#expand(expr) abort
+  let path = giit#meta#get_at(a:expr, 'filename', '')
+  if empty(path)
+    let path = expand(escape(a:expr, '\'))
+  endif
+  return s:Path.remove_last_separator(path)
 endfunction
 
 

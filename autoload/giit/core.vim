@@ -1,17 +1,12 @@
-let s:Git = vital#giit#import('Git')
 let s:Path = vital#giit#import('System.Filepath')
+let s:Git = vital#giit#import('Git')
+let s:GitCore = vital#giit#import('Git.Core')
+let s:GitUtil = vital#giit#import('Git.Util')
+let s:GitProcess = vital#giit#import('Git.Process')
 
 if !exists('s:refs')
   let s:refs = {}
 endif
-
-function! giit#core#expand(expr) abort
-  let path = giit#meta#get_at(a:expr, 'filename', '')
-  if empty(path)
-    let path = expand(a:expr)
-  endif
-  return s:Path.remove_last_separator(path)
-endfunction
 
 function! giit#core#get(...) abort
   let expr = get(a:000, 0, '%')
@@ -46,11 +41,6 @@ function! s:get_available_refname(refname, git) abort
 endfunction
 
 function! s:new_refinfo(expr) abort
-  let git = {
-        \ 'worktree': '',
-        \ 'repository': '',
-        \ 'commondir': '',
-        \}
   let bufname = bufname(a:expr)
   let buftype = getbufvar(a:expr, '&buftype', '')
 
@@ -66,33 +56,35 @@ function! s:new_refinfo(expr) abort
   endif
 
   " Use filename of the buffer if the buffer is a file like buffer
-  let path = giit#core#expand(a:expr)
-  if empty(git.worktree)
-    if index(['nofile', 'quickfix', 'help'], buftype) == -1
-      let git = s:Git.get(path)
-      let git = empty(git.worktree) && path !=# resolve(path)
-            \ ? s:Git.get(resolve(path))
-            \ : git
-    endif
+  let git = {}
+  let path = giit#expand(a:expr)
+  if index(['nofile', 'quickfix', 'help'], buftype) == -1
+    let git = s:Git.get(path)
+    let git = empty(git) && path !=# resolve(path)
+          \ ? s:Git.get(resolve(path))
+          \ : git
   endif
 
   " Use a current working directory
   let cwd = getcwd()
-  if empty(git.worktree)
+  if empty(git)
     let git = s:Git.get(cwd)
-    let git = empty(git.worktree) && cwd !=# resolve(cwd)
+    let git = empty(git) && cwd !=# resolve(cwd)
           \ ? s:Git.get(resolve(cwd))
           \ : git
   endif
 
   " Build refname from git instance and cache
-  if empty(git.worktree)
+  if empty(git)
     let refname = ''
   else
     let refname = s:get_available_refname(
           \ fnamemodify(git.worktree, ':t'),
           \ git,
           \)
+    call s:GitCore.bind(git)
+    call s:GitUtil.bind(git)
+    call s:GitProcess.bind(git)
     let s:refs[refname] = git
   endif
 

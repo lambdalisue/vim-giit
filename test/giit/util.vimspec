@@ -55,4 +55,12 @@ Describe giit#util
       Assert False(exists('g:_giit_test_util_doautocmd'))
     End
   End
+
+  Describe #select()
+    " TODO
+  End
+
+  Describe #syncbind()
+    " TODO
+  End
 End

@@ -1,7 +1,6 @@
 let s:Buffer = vital#giit#import('Vim.Buffer')
 let s:BufferAnchor = vital#giit#import('Vim.Buffer.Anchor')
 let s:BufferDoom = vital#giit#import('Vim.Buffer.Doom')
-let s:GitProcess = vital#giit#import('Git.Process')
 let s:WORKTREE = '@@'
 
 
@@ -23,7 +22,7 @@ function! s:on_BufReadCmd() abort
         \ giit#meta#require('options')
         \)
   if result.status
-    call s:GitProcess.throw(result)
+    call giit#throw(result)
   endif
   call s:Buffer.edit_content(result.content)
   call giit#util#doautocmd('BufRead')
@@ -42,7 +41,7 @@ function! s:on_BufWriteCmd() abort
         \ 'diff_content': getline(1, '$'),
         \})
   if result.status
-    call s:GitProcess.throw(result)
+    call giit#throw(result)
   endif
   setlocal nomodified
 endfunction
@@ -119,7 +118,7 @@ function! s:open2(git, options) abort
         \ 'selection': [],
         \}, a:options)
   let filename = empty(options.filename)
-        \ ? giit#util#normalize#relpath(a:git, giit#core#expand('%'))
+        \ ? giit#util#normalize#relpath(a:git, giit#expand('%'))
         \ : options.filename
   let [lhs, rhs] = giit#operation#diff#split_commit(a:git, a:options)
   let vertical = matchstr(&diffopt, 'vertical')

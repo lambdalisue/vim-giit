@@ -1,5 +1,4 @@
 let s:ArgumentParser = vital#giit#import('ArgumentParser')
-let s:GitProcess = vital#giit#import('Git.Process')
 
 
 function! giit#operation#show#correct(git, options) abort
@@ -30,11 +29,11 @@ endfunction
 
 function! giit#operation#show#execute(git, options) abort
   let args = s:build_args(a:git, a:options)
-  let result = s:GitProcess.execute(a:git, args, {
+  let result = a:git.execute(args, {
         \ 'encode_output': 0,
         \})
   if result.status
-    call s:GitProcess.throw(result)
+    call giit#throw(result)
   endif
   return result
 endfunction

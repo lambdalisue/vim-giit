@@ -1,6 +1,3 @@
-let s:GitProcess = vital#giit#import('Git.Process')
-
-
 function! giit#action#index#define(binder) abort
   call a:binder.define('index:add', function('s:on_add'), {
         \ 'hidden': 1,
@@ -91,9 +88,9 @@ function! s:on_add(candidates, options) abort
         \ 'giit#util#normalize#abspath(git, v:val.path)',
         \)
   let args = filter(args, '!empty(v:val)')
-  let result = s:GitProcess.execute(git, args)
+  let result = git.execute(args)
   if result.status
-    call s:GitProcess.throw(result)
+    call giit#throw(result)
   endif
   call giit#trigger_modified()
 endfunction
@@ -116,9 +113,9 @@ function! s:on_rm(candidates, options) abort
         \ 'giit#util#normalize#abspath(git, v:val.path)',
         \)
   let args = filter(args, '!empty(v:val)')
-  let result = s:GitProcess.execute(git, args)
+  let result = git.execute(args)
   if result.status
-    call s:GitProcess.throw(result)
+    call giit#throw(result)
   endif
   call giit#trigger_modified()
 endfunction
@@ -135,9 +132,9 @@ function! s:on_reset(candidates, options) abort
         \ 'giit#util#normalize#relpath(git, v:val.path)',
         \)
   let args = filter(args, '!empty(v:val)')
-  let result = s:GitProcess.execute(git, args)
+  let result = git.execute(args)
   if result.status
-    call s:GitProcess.throw(result)
+    call giit#throw(result)
   endif
   call giit#trigger_modified()
 endfunction

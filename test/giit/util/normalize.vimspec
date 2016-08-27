@@ -1,19 +1,15 @@
 Describe giit#util#normalize
   Before all
+    call g:git_tester.attach(l:)
     let Path = vital#vital#import('System.Filepath')
-
-    let Git = vital#giit#import('Git')
-    let GitInfo = vital#giit#import('Git.Info')
-    let inside = g:giit#test#inside
-    let outside = g:giit#test#outside
   End
 
   Describe #relpath()
     It returns a relative unix path in a git repository
-      let git = Git.get(inside)
+      let git = giit#core#get(inside)
       let path = 'foo/bar/hoge.txt'
       let relpath = Path.realpath('foo/bar/hoge.txt')
-      let abspath = Git.abspath(git, relpath)
+      let abspath = Path.join(git.worktree, relpath)
 
       Assert Equals(giit#util#normalize#relpath(git, path), path)
       Assert Equals(giit#util#normalize#relpath(git, relpath), path)
@@ -21,10 +17,10 @@ Describe giit#util#normalize
     End
 
     It returns a relative unix path out a git repository
-      let git = Git.get(outside)
+      let git = giit#core#get(outside)
       let path = 'foo/bar/hoge.txt'
       let relpath = Path.realpath('foo/bar/hoge.txt')
-      let abspath = Git.abspath(git, relpath)
+      let abspath = Path.join(getcwd(), relpath)
 
       Assert Equals(giit#util#normalize#relpath(git, path), path)
       Assert Equals(giit#util#normalize#relpath(git, relpath), path)
@@ -34,10 +30,10 @@ Describe giit#util#normalize
 
   Describe #abspath()
     It returns an absolute real path in a git repository
-      let git = Git.get(inside)
+      let git = giit#core#get(inside)
       let path = 'foo/bar/hoge.txt'
       let relpath = Path.realpath('foo/bar/hoge.txt')
-      let abspath = Git.abspath(git, relpath)
+      let abspath = Path.join(git.worktree, relpath)
 
       Assert Equals(giit#util#normalize#abspath(git, path), abspath)
       Assert Equals(giit#util#normalize#abspath(git, relpath), abspath)
@@ -45,10 +41,10 @@ Describe giit#util#normalize
     End
 
     It returns an absolute real path out a git repository
-      let git = Git.get(outside)
+      let git = giit#core#get(outside)
       let path = 'foo/bar/hoge.txt'
       let relpath = Path.realpath('foo/bar/hoge.txt')
-      let abspath = Git.abspath(git, relpath)
+      let abspath = Path.join(getcwd(), relpath)
 
       Assert Equals(giit#util#normalize#abspath(git, path), abspath)
       Assert Equals(giit#util#normalize#abspath(git, relpath), abspath)
@@ -58,22 +54,22 @@ Describe giit#util#normalize
 
   Describe #commit()
     It returns a common ancestor of {lhs} and {rhs} when {lhs}...{rhs} is given
-      let git = Git.get(inside)
+      let git = giit#core#get(inside)
       let lhs = 'master'
       let rhs = 'develop'
-      let anc = GitInfo.find_common_ancestor(git, lhs, rhs)
+      let anc = git.util.find_common_ancestor(lhs, rhs)
       Assert Equals(giit#util#normalize#commit(git, lhs . '...' . rhs), anc)
     End
 
     It returns {lhs} when {lhs}..{rhs} is given
-      let git = Git.get(inside)
+      let git = giit#core#get(inside)
       let lhs = 'master'
       let rhs = 'develop'
       Assert Equals(giit#util#normalize#commit(git, lhs . '..' . rhs), lhs)
     End
 
     It returns {commit}
-      let git = Git.get(inside)
+      let git = giit#core#get(inside)
       let lhs = 'master'
       Assert Equals(giit#util#normalize#commit(git, lhs), lhs)
     End
@@ -81,10 +77,10 @@ Describe giit#util#normalize
 
   Describe #commit_for_diff()
     It returns {ancestor}..{rhs} when {lhs}...{rhs} is given
-      let git = Git.get(inside)
+      let git = giit#core#get(inside)
       let lhs = 'master'
       let rhs = 'develop'
-      let anc = GitInfo.find_common_ancestor(git, lhs, rhs)
+      let anc = git.util.find_common_ancestor(lhs, rhs)
       Assert Equals(
             \ giit#util#normalize#commit_for_diff(git, lhs . '...' . rhs),
             \ anc . '..' . rhs
@@ -92,7 +88,7 @@ Describe giit#util#normalize
     End
 
     It returns {lhs}..{rhs} when {lhs}..{rhs} is given
-      let git = Git.get(inside)
+      let git = giit#core#get(inside)
       let lhs = 'master'
       let rhs = 'develop'
       Assert Equals(
@@ -102,7 +98,7 @@ Describe giit#util#normalize
     End
 
     It returns {commit}
-      let git = Git.get(inside)
+      let git = giit#core#get(inside)
       let lhs = 'master'
       Assert Equals(giit#util#normalize#commit_for_diff(git, lhs), lhs)
     End

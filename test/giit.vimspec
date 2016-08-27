@@ -1,0 +1,25 @@
+Describe giit
+  Before all
+    let Path = vital#vital#import('System.Filepath')
+  End
+
+  Describe #expand()
+    It returns an expand real path of {expr}
+      let path = giit#expand('$USER/README.md')
+      let user = expand('$USER')
+      Assert Equals(path, Path.join(user, 'README.md'))
+    End
+
+    It returns an expand value of {expr} without a trailing slash
+      let path = giit#expand('$USER/autoload/')
+      let user = expand('$USER')
+      Assert Equals(path . Path.separator(), Path.join(user, 'autoload/'))
+    End
+
+    It returns a value of 'filename' in a meta of a {expr} buffer
+      call giit#meta#set('filename', 'foobar')
+      let path = giit#expand('%')
+      Assert Equals(path, 'foobar')
+    End
+  End
+End
