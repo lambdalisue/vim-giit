@@ -1,8 +1,10 @@
 #!/bin/bash
-set -ex
-export PATH="$HOME/.local/bin:$HOME/neovim/bin:$HOME/vim/bin:/tmp/vim-themis/bin:$PATH"
-export THEMIS_HOME="/tmp/vim-themis"
-
+set -x
+export PATH="$HOME/neovim/bin:$HOME/vim/bin:$PATH"
+if [[ -d /tmp/vim-themis ]]; then
+    export THEMIS_HOME="/tmp/vim-themis"
+    export PATH="/tmp/vim-themis/bin:$PATH"
+fi
 if [[ "$VERSION" == "nvim" ]]; then
     export THEMIS_VIM="nvim"
     export THEMIS_ARGS="-e -s --headless"
