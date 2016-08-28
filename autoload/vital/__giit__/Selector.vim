@@ -473,9 +473,6 @@ endfunction
 
 function! s:_on_InsertEnter() abort
   let v:char = '.'
-  if &l:cursorline
-    setlocal nocursorline
-  endif
   call s:_on_CursorMovedI()
 endfunction
 
@@ -495,7 +492,6 @@ endfunction
 
 function! s:_on_CursorMoved() abort
   if line('.') > 1
-    setlocal cursorline
     let selector = s:get()
     let prefix_length = len(selector.prefix)
     let cursor = getpos('.')
@@ -505,7 +501,6 @@ function! s:_on_CursorMoved() abort
     endif
     return
   endif
-  setlocal nocursorline
   call s:_on_CursorMovedI()
 endfunction
 
