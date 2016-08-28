@@ -1,0 +1,198 @@
+Describe Selector
+  Before all
+    let Path = vital#vital#import('System.Filepath')
+    let Guard = vital#vital#import('Vim.Guard')
+    let scope = themis#helper('scope')
+    let sfile = Path.realpath('autoload/vital/__giit__/Selector.vim')
+    let candidates = []
+    let candidates += map(range(1, 1000), '{ ''word'': ''A'' . string(v:val) }')
+    let candidates += map(range(1, 1000), '{ ''word'': ''a'' . string(v:val) }')
+    let indices = range(len(candidates))
+  End
+
+  Before
+    let Selector = vital#giit#import('Selector')
+    let sf = scope.funcs(sfile)
+    let guard = Guard.store(['&ignorecase'])
+  End
+
+  After
+    call guard.restore()
+  End
+
+  Describe s:_filter_candidates()
+    It filters candidates by 'word' attribute (ignorecase)
+      let available_indices = sf._filter_candidates(
+            \ indices, candidates, ['a', '10', '5',], 1
+            \)
+      let available_candidates = map(
+            \ copy(available_indices),
+            \ 'candidates[v:val]'
+            \)
+      Assert Equals(available_indices, [104, 509, 1104, 1509])
+      Assert Equals(available_candidates, [
+            \ { 'word': 'A105' },
+            \ { 'word': 'A510' },
+            \ { 'word': 'a105' },
+            \ { 'word': 'a510' },
+            \])
+    End
+
+    It filters candidates by 'word' attribute (noignorecase)
+      let available_indices = sf._filter_candidates(
+            \ indices, candidates, ['a', '10', '5',], 0
+            \)
+      let available_candidates = map(
+            \ copy(available_indices),
+            \ 'candidates[v:val]'
+            \)
+      Assert Equals(available_indices, [1104, 1509])
+      Assert Equals(available_candidates, [
+            \ { 'word': 'a105' },
+            \ { 'word': 'a510' },
+            \])
+    End
+
+    Describe s:_filter_candidates_vim()
+      It filters candidates by 'word' attribute (ignorecase)
+        let available_indices = sf._filter_candidates_vim(
+              \ indices, candidates, ['a', '10', '5',], 1
+              \)
+        let available_candidates = map(
+              \ copy(available_indices),
+              \ 'candidates[v:val]'
+              \)
+        Assert Equals(available_indices, [104, 509, 1104, 1509])
+        Assert Equals(available_candidates, [
+              \ { 'word': 'A105' },
+              \ { 'word': 'A510' },
+              \ { 'word': 'a105' },
+              \ { 'word': 'a510' },
+              \])
+      End
+
+      It filters candidates by 'word' attribute (noignorecase)
+        let available_indices = sf._filter_candidates_vim(
+              \ indices, candidates, ['a', '10', '5',], 0
+              \)
+        let available_candidates = map(
+              \ copy(available_indices),
+              \ 'candidates[v:val]'
+              \)
+        Assert Equals(available_indices, [1104, 1509])
+        Assert Equals(available_candidates, [
+              \ { 'word': 'a105' },
+              \ { 'word': 'a510' },
+              \])
+      End
+    End
+
+    if has('lua')
+      Describe s:_filter_candidates_lua()
+        It filters candidates by 'word' attribute (ignorecase)
+          let available_indices = sf._filter_candidates_lua(
+                \ indices, candidates, ['a', '10', '5',], 1
+                \)
+          let available_candidates = map(
+                \ copy(available_indices),
+                \ 'candidates[v:val]'
+                \)
+          Assert Equals(available_indices, [104, 509, 1104, 1509])
+          Assert Equals(available_candidates, [
+                \ { 'word': 'A105' },
+                \ { 'word': 'A510' },
+                \ { 'word': 'a105' },
+                \ { 'word': 'a510' },
+                \])
+        End
+
+        It filters candidates by 'word' attribute (noignorecase)
+          let available_indices = sf._filter_candidates_lua(
+                \ indices, candidates, ['a', '10', '5',], 0
+                \)
+          let available_candidates = map(
+                \ copy(available_indices),
+                \ 'candidates[v:val]'
+                \)
+          Assert Equals(available_indices, [1104, 1509])
+          Assert Equals(available_candidates, [
+                \ { 'word': 'a105' },
+                \ { 'word': 'a510' },
+                \])
+        End
+      End
+    endif
+
+    if !has('nvim') && has('python')
+      Describe s:_filter_candidates_python()
+        It filters candidates by 'word' attribute (ignorecase)
+          let available_indices = sf._filter_candidates_python(
+                \ indices, candidates, ['a', '10', '5',], 1
+                \)
+          let available_candidates = map(
+                \ copy(available_indices),
+                \ 'candidates[v:val]'
+                \)
+          Assert Equals(available_indices, [104, 509, 1104, 1509])
+          Assert Equals(available_candidates, [
+                \ { 'word': 'A105' },
+                \ { 'word': 'A510' },
+                \ { 'word': 'a105' },
+                \ { 'word': 'a510' },
+                \])
+        End
+
+        It filters candidates by 'word' attribute (noignorecase)
+          let available_indices = sf._filter_candidates_python(
+                \ indices, candidates, ['a', '10', '5',], 0
+                \)
+          let available_candidates = map(
+                \ copy(available_indices),
+                \ 'candidates[v:val]'
+                \)
+          Assert Equals(available_indices, [1104, 1509])
+          Assert Equals(available_candidates, [
+                \ { 'word': 'a105' },
+                \ { 'word': 'a510' },
+                \])
+        End
+      End
+    endif
+
+    if !has('nvim') && has('python3')
+      Describe s:_filter_candidates_python3()
+        It filters candidates by 'word' attribute (ignorecase)
+          let available_indices = sf._filter_candidates_python3(
+                \ indices, candidates, ['a', '10', '5',], 1
+                \)
+          let available_candidates = map(
+                \ copy(available_indices),
+                \ 'candidates[v:val]'
+                \)
+          Assert Equals(available_indices, [104, 509, 1104, 1509])
+          Assert Equals(available_candidates, [
+                \ { 'word': 'A105' },
+                \ { 'word': 'A510' },
+                \ { 'word': 'a105' },
+                \ { 'word': 'a510' },
+                \])
+        End
+
+        It filters candidates by 'word' attribute (noignorecase)
+          let available_indices = sf._filter_candidates_python3(
+                \ indices, candidates, ['a', '10', '5',], 0
+                \)
+          let available_candidates = map(
+                \ copy(available_indices),
+                \ 'candidates[v:val]'
+                \)
+          Assert Equals(available_indices, [1104, 1509])
+          Assert Equals(available_candidates, [
+                \ { 'word': 'a105' },
+                \ { 'word': 'a510' },
+                \])
+        End
+      End
+    endif
+  End
+End

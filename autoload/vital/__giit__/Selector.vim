@@ -1,10 +1,11 @@
 function! s:_vital_loaded(V) abort
+  let s:String = a:V.import('Data.String')
   let s:Guard = a:V.import('Vim.Guard')
   let s:Buffer = a:V.import('Vim.Buffer')
 endfunction
 
 function! s:_vital_depends() abort
-  return ['Vim.Guard', 'Vim.Buffer']
+  return ['Data.String', 'Vim.Guard', 'Vim.Buffer']
 endfunction
 
 
@@ -184,13 +185,13 @@ function! s:selector.define_syntax() abort
         \ contains=vitalComponentSelectorPrefix
   execute printf(
         \ 'syntax match vitalComponentSelectorPrefix /^%s/ contained',
-        \ escape(s:_escape_pattern(self.prefix), '/'),
+        \ escape(s:String.escape_pattern(self.prefix), '/'),
         \)
   let patterns = self.get_patterns()
   if !empty(patterns)
     let patterns = map(
           \ patterns,
-          \ 's:_escape_pattern(v:val)',
+          \ 's:String.escape_pattern(v:val)',
           \)
     let pattern = printf('%s\%%(%s\)',
           \ join(patterns, '\|'),
@@ -285,7 +286,7 @@ function! s:selector.filter_candidates(...) abort
     call self.define_syntax()
     call self.redraw()
     return
-  elseif !force && input =~# '\m^' . s:_escape_pattern(self.previous_input)
+  elseif !force && input =~# '\m^' . s:String.escape_pattern(self.previous_input)
     let self.previous_input = input
     let self.available_indices = s:_filter_candidates(
           \ self.available_indices,
@@ -543,16 +544,30 @@ function! s:_debug(...) abort
   endif
 endfunction
 
-function! s:_escape_pattern(pattern) abort
-  return escape(a:pattern, '^$~.*[]\"')
+" Note:
+" Using stridx() is faster than using =~# but using stridx() + tolower() * 2
+" is slower than using =~?
+function! s:_filter_candidates_vim(indices, candidates, patterns, ignorecase) abort
+  if a:ignorecase
+    let patterns = map(copy(a:patterns), 'escape(v:val, ''^$~.*[]\"'')')
+    for pattern in patterns
+      call filter(
+            \ a:indices,
+            \ 'a:candidates[v:val].word =~? ''\m'' . pattern'
+            \)
+    endfor
+  else
+    for pattern in a:patterns
+      call filter(
+            \ a:indices,
+            \ 'stridx(a:candidates[v:val].word, pattern) != -1'
+            \)
+    endfor
+  endif
+  return a:indices
 endfunction
-
-" NOTE:
-" In vim:  lua < python < python3 < vim
-" In nvim: vim << python < python3
-" https://gist.github.com/7bd3235de531c5dfac05a2f2fe7ddbf0#file-test2-vim
 if has('lua')
-  function! s:_filter_candidates(indices, candidates, patterns, ignorecase) abort
+  function! s:_filter_candidates_lua(indices, candidates, patterns, ignorecase) abort
     lua << EOF
 do
   local patterns = vim.eval('a:patterns')
@@ -581,8 +596,9 @@ end
 EOF
     return a:indices
   endfunction
-elseif !has('nvim') && has('python')
-  function! s:_filter_candidates(indices, candidates, patterns, ignorecase) abort
+endif
+if !has('nvim') && has('python')
+  function! s:_filter_candidates_python(indices, candidates, patterns, ignorecase) abort
     python << EOF
 import vim
 def _temporary_scope():
@@ -604,8 +620,9 @@ del _temporary_scope
 EOF
     return a:indices
   endfunction
-elseif !has('nvim') && has('python3')
-  function! s:_filter_candidates(indices, candidates, patterns, ignorecase) abort
+endif
+if !has('nvim') && has('python3')
+  function! s:_filter_candidates_python3(indices, candidates, patterns, ignorecase) abort
     python3 << EOF
 import vim
 def _temporary_scope():
@@ -627,27 +644,26 @@ del _temporary_scope
 EOF
     return a:indices
   endfunction
+endif
+
+" NOTE:
+" In vim:  lua < python < python3 < vim
+" In nvim: vim << python < python3
+" https://gist.github.com/7bd3235de531c5dfac05a2f2fe7ddbf0#file-test2-vim
+if has('lua')
+  function! s:_filter_candidates(...) abort
+    return call('s:_filter_candidates_lua', a:000)
+  endfunction
+elseif !has('nvim') && has('python')
+  function! s:_filter_candidates(...) abort
+    return call('s:_filter_candidates_python', a:000)
+  endfunction
+elseif !has('nvim') && has('python3')
+  function! s:_filter_candidates(...) abort
+    return call('s:_filter_candidates_python3', a:000)
+  endfunction
 else
-  " Note:
-  " Using stridx() is faster than using =~# but using stridx() + tolower() * 2
-  " is slower than using =~?
-  function! s:_filter_candidates(indices, candidates, patterns, ignorecase) abort
-    if a:ignorecase
-      let patterns = map(copy(a:patterns), 'escape(v:val, ''^$~.*[]\"'')')
-      for pattern in patterns
-        call filter(
-              \ a:indices,
-              \ 'a:candidates[v:val].word =~? ''\m'' . pattern'
-              \)
-      endfor
-    else
-      for pattern in a:patterns
-        call filter(
-              \ a:indices,
-              \ 'stridx(a:candidates[v:val].word, pattern) != -1'
-              \)
-      endfor
-    endif
-    return a:indices
+  function! s:_filter_candidates(...) abort
+    return call('s:_filter_candidates_vim', a:000)
   endfunction
 endif
