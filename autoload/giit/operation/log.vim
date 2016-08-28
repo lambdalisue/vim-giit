@@ -2,6 +2,7 @@ let s:Path = vital#giit#import('System.Filepath')
 let s:ArgumentParser = vital#giit#import('ArgumentParser')
 let s:DictOption = vital#giit#import('Data.Dict.Option')
 let s:GitProcess = vital#giit#import('Git.Process')
+let s:Aligner = vital#giit#import('Data.String.Aligner')
 
 
 function! giit#operation#log#correct(git, options) abort
@@ -39,7 +40,13 @@ function! s:build_args(git, options) abort
   let options = giit#operation#log#correct(a:git, a:options)
   let args = s:DictOption.translate(options, {
         \})
-  let args = ['log', '--no-color', '--oneline', '--graph', '--decorate'] + args
+  let args = [
+        \ 'log',
+        \ '--no-color',
+        \ '--graph',
+        \ '--oneline',
+        \ '--pretty=format:' . join(s:record_columns, s:record_separator),
+        \] + args
   return filter(args, '!empty(v:val)')
 endfunction
 
@@ -61,10 +68,21 @@ endfunction
 
 
 " Parse ----------------------------------------------------------------------
+let s:record_separator = '#GIITSEP#'
+let s:record_columns = ['%d %s', '%h', '%an', '%ar']
 function! giit#operation#log#parse(git, content) abort
-  return map(copy(a:content), 's:parse_record(v:val)')
+  let matrix = map(copy(a:content), 'split(v:val, s:record_separator, 1)')
+  let matrix = s:Aligner.align(matrix)
+  return map(copy(matrix), 's:parse_record(v:val)')
 endfunction
 
-function! s:parse_record(record) abort
-  return { 'word': a:record }
+
+function! s:parse_record(columns) abort
+  return {
+        \ 'word': join(a:columns, '  '),
+        \}
+endfunction
+
+function! s:strip(str) abort
+  return substitute(a:str, '^\s\+\|\s\+$', '', 'g')
 endfunction
