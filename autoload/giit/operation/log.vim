@@ -1,4 +1,5 @@
 let s:Path = vital#giit#import('System.Filepath')
+let s:String = vital#giit#import('Data.String')
 let s:ArgumentParser = vital#giit#import('ArgumentParser')
 let s:DictOption = vital#giit#import('Data.Dict.Option')
 let s:GitProcess = vital#giit#import('Git.Process')
@@ -45,7 +46,7 @@ function! s:build_args(git, options) abort
         \ '--no-color',
         \ '--graph',
         \ '--oneline',
-        \ '--pretty=format:' . join(s:record_columns, s:record_separator),
+        \ '--pretty=format:' . s:record_separator . join(s:record_columns, s:record_separator),
         \] + args
   return filter(args, '!empty(v:val)')
 endfunction
@@ -69,18 +70,34 @@ endfunction
 
 " Parse ----------------------------------------------------------------------
 let s:record_separator = '#GIITSEP#'
-let s:record_columns = ['%d %s', '%h', '%an', '%ar']
+let s:record_columns = ['%h', '%ar', '%an', '%s', '%d']
+
 function! giit#operation#log#parse(git, content) abort
-  let matrix = map(copy(a:content), 'split(v:val, s:record_separator, 1)')
-  let matrix = s:Aligner.align(matrix)
-  return map(copy(matrix), 's:parse_record(v:val)')
+  let candidates = map(copy(a:content), 'split(v:val, s:record_separator, 1)')
+  let trailings = repeat([''], 5)
+  call map(candidates, 'len(v:val) == 1 ? v:val + trailings : v:val')
+  call s:Aligner.align(candidates)
+  let widths = map(copy(candidates[0]), 'strwidth(v:val)')
+  let fixwidth = eval(join(widths, '+'))
+  let colwidth = winwidth(0) - fixwidth - 8 + widths[4]
+  return map(candidates, 's:parse_record(v:val, colwidth)')
 endfunction
 
 
-function! s:parse_record(columns) abort
-  return {
-        \ 'word': join(a:columns, '  '),
-        \}
+function! s:parse_record(columns, colwidth) abort
+  let columns = a:columns[:3] + [s:String.truncate(a:columns[4], a:colwidth)] + a:columns[5:]
+  if empty(a:columns[1])
+    return { 'word': join(columns) }
+  else
+    return {
+          \ 'word': join(columns),
+          \ 'hashref': s:strip(a:columns[1]),
+          \ 'reldate': s:strip(a:columns[2]),
+          \ 'author': s:strip(a:columns[3]),
+          \ 'subject': s:strip(a:columns[4]),
+          \ 'reflog': s:strip(a:columns[5]),
+          \}
+  endif
 endfunction
 
 function! s:strip(str) abort
