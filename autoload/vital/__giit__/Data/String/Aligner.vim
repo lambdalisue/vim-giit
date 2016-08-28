@@ -1,3 +1,20 @@
+let s:scriptroot = expand('<sfile>:p:h')
+let s:is_windows = has('win32') || has('win64')
+
+if s:is_windows
+  function! s:_realpath(path) abort
+    if exists('&shellslash') && &shellslash
+      return a:path
+    else
+      return fnamemodify(a:path, ':gs?/?\\?')
+    endif
+  endfunction
+else
+  function! s:_realpath(path) abort
+    return a:path
+  endfunction
+endif
+
 function! s:_vital_created(module) abort
   if has('lua')
     let a:module['align'] = function('s:_align_lua')
@@ -27,36 +44,21 @@ function! s:_align_vim(matrix) abort
 endfunction
 
 if has('lua')
-  " NOTE:
-  " To accelerate the performance, install 'luautf8' in Lua 5.1/5.2 via
-  "   $ luarocks install luautf8
-  " https://github.com/starwing/luautf8
+  execute printf(
+        \ 'lua package.path = package.path .. ";%s/?.lua"',
+        \ simplify(s:_realpath(s:scriptroot . '/lua'))
+        \)
   function! s:_align_lua(matrix) abort
     lua << EOF
 do
-  local utf8
-  local strdisplaywidth
-  if utf8 == nil then
-    ok, utf8 = pcall(require, 'lua-utf8')
-    if ok then
-      local ambi_is_double = vim.eval('&ambiwidth') == 'double'
-      strdisplaywidth = function(x) return utf8.width(x, ambi_is_double, 1) end
-    elseif vim.funcref ~= nil then
-      -- vim.funcref has not implemented yet in Vim 7.4.2243
-      strdisplaywidth = vim.funcref('strdisplaywidth')
-    else
-      strdisplaywidth = function(x)
-        return vim.eval(string.format('strdisplaywidth("%s")', x))
-      end
-    end
-  end
+  local ustring = require 'ustring'
   local matrix = vim.eval('a:matrix')
   local longests = {}
   local length = 0
   -- Find longest lengths of each column
   for r = 0, #matrix-1 do
     for c = 0, #matrix[r]-1 do
-      length = strdisplaywidth(matrix[r][c])
+      length = ustring.width(matrix[r][c])
       if (longests[c] == nil or longests[c] < length) then
         longests[c] = length
       end
@@ -65,7 +67,7 @@ do
   -- Add padding to each columns
   for r = 0, #matrix-1 do
     for c = 0, #matrix[r]-1 do
-      padding = longests[c] - strdisplaywidth(matrix[r][c])
+      padding = longests[c] - ustring.width(matrix[r][c])
       if padding > 0 then
         matrix[r][c] = matrix[r][c] .. string.rep(' ', padding)
       end
