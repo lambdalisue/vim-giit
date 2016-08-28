@@ -1,0 +1,154 @@
+scriptencoding utf-8
+
+Describe Data.String.Aligner
+  Before all
+    let Path = vital#vital#import('System.Filepath')
+    let scope = themis#helper('scope')
+    let sfile = Path.realpath('autoload/vital/__giit__/Data/String/Aligner.vim')
+    let matrix = [
+          \ ['size', 'material', 'color'],
+          \ ['9', 'leather', 'brown'],
+          \ ['10', 'hemp canvas', 'natural'],
+          \ ['11', 'glass', 'transparent'],
+          \]
+    let matrix_aligned = [
+          \ ['size', 'material   ', 'color      '],
+          \ ['9   ', 'leather    ', 'brown      '],
+          \ ['10  ', 'hemp canvas', 'natural    '],
+          \ ['11  ', 'glass      ', 'transparent'],
+          \]
+
+    let matrix2 = [
+          \ ['*  (HEAD -> master) Add Data.String.Aligner',              '2dbe048', 'lambdalisue', '35 minutes ago'],
+          \ ['*  Add unittest of Selector',                              '8833261', 'lambdalisue', '35 minutes ago'],
+          \ ['*  Add uiit log',                                          '48374a5', 'lambdalisue', '13 hours ago'],
+          \ ['*  Add ut select candidate at the input line on selector', '8778f7a', 'lambdalisue', '13 hours ago'],
+          \ ['*  Add uin/master, origin/HEAD) Improve action selector',  '80e50a2', 'lambdalisue', '17 hours ago'],
+          \ ['*  Add ug commit feature (WIP',                            'c6813e8', 'lambdalisue', '17 hours ago'],
+          \]
+    let matrix2_aligned = [
+          \ ['*  (HEAD -> master) Add Data.String.Aligner             ', '2dbe048', 'lambdalisue', '35 minutes ago'],
+          \ ['*  Add unittest of Selector                             ', '8833261', 'lambdalisue', '35 minutes ago'],
+          \ ['*  Add uiit log                                         ', '48374a5', 'lambdalisue', '13 hours ago  '],
+          \ ['*  Add ut select candidate at the input line on selector', '8778f7a', 'lambdalisue', '13 hours ago  '],
+          \ ['*  Add uin/master, origin/HEAD) Improve action selector ', '80e50a2', 'lambdalisue', '17 hours ago  '],
+          \ ['*  Add ug commit feature (WIP                           ', 'c6813e8', 'lambdalisue', '17 hours ago  '],
+          \]
+
+    let matrix3 = [
+          \ ['テスト', 'マテリアル', '色'],
+          \ ['9', 'leather', 'brown'],
+          \ ['10', 'hemp canvas', 'natural'],
+          \ ['11', 'glass', 'transparent'],
+          \ ['９', '皮', '茶色'],
+          \ ['１０', '麻のキャンバス', '自然'],
+          \ ['１１', 'コップ', '透明'],
+          \]
+    let matrix3_aligned = [
+          \ ['テスト', 'マテリアル    ', '色         '],
+          \ ['9     ', 'leather       ', 'brown      '],
+          \ ['10    ', 'hemp canvas   ', 'natural    '],
+          \ ['11    ', 'glass         ', 'transparent'],
+          \ ['９    ', '皮            ', '茶色       '],
+          \ ['１０  ', '麻のキャンバス', '自然       '],
+          \ ['１１  ', 'コップ        ', '透明       '],
+          \]
+  End
+
+  Before
+    let Aligner = vital#giit#import('Data.String.Aligner')
+    let sf = scope.funcs(sfile)
+  End
+
+  Describe .align()
+    It adds white spaces to each columns to make the length of each columns fixed
+      let result = Aligner.align(deepcopy(matrix))
+      Assert Equals(result, matrix_aligned)
+    End
+
+    It adds white spaces to each columns to make the length of each columns fixed (case 2)
+      let result = Aligner.align(deepcopy(matrix2))
+      Assert Equals(result, matrix2_aligned)
+    End
+
+    It adds white spaces to each columns to make the length of each columns fixed (case 3)
+      let result = Aligner.align(deepcopy(matrix3))
+      Assert Equals(result, matrix3_aligned)
+    End
+
+    Describe s:_align_vim()
+      It adds white spaces to each columns to make the length of each columns fixed
+        let result = sf._align_vim(deepcopy(matrix))
+        Assert Equals(result, matrix_aligned)
+      End
+
+      It adds white spaces to each columns to make the length of each columns fixed (case 2)
+        let result = sf._align_vim(deepcopy(matrix2))
+        Assert Equals(result, matrix2_aligned)
+      End
+
+      It adds white spaces to each columns to make the length of each columns fixed (case 3)
+        let result = sf._align_vim(deepcopy(matrix3))
+        Assert Equals(result, matrix3_aligned)
+      End
+    End
+
+    if has('lua')
+      Describe s:_align_lua()
+        It adds white spaces to each columns to make the length of each columns fixed
+          let result = sf._align_lua(deepcopy(matrix))
+          Assert Equals(result, matrix_aligned)
+        End
+
+        It adds white spaces to each columns to make the length of each columns fixed (case 2)
+          let result = sf._align_lua(deepcopy(matrix2))
+          Assert Equals(result, matrix2_aligned)
+        End
+
+        It adds white spaces to each columns to make the length of each columns fixed (case 3)
+          let result = sf._align_lua(deepcopy(matrix3))
+          Assert Equals(result, matrix3_aligned)
+        End
+      End
+    endif
+
+    if has('python')
+      Describe s:_align_python()
+        It adds white spaces to each columns to make the length of each columns fixed
+          let result = sf._align_python(deepcopy(matrix))
+          Assert Equals(result, matrix_aligned)
+        End
+
+        It adds white spaces to each columns to make the length of each columns fixed (case 2)
+          let result = sf._align_python(deepcopy(matrix2))
+          Assert Equals(result, matrix2_aligned)
+        End
+
+        It adds white spaces to each columns to make the length of each columns fixed (case 3)
+          let result = sf._align_python(deepcopy(matrix3))
+          Assert Equals(result, matrix3_aligned)
+        End
+      End
+    endif
+
+    if has('python3')
+      Describe s:_align_python3()
+        It adds white spaces to each columns to make the length of each columns fixed
+          let result = sf._align_python3(deepcopy(matrix))
+          Assert Equals(result, matrix_aligned)
+        End
+
+        It adds white spaces to each columns to make the length of each columns fixed (case 2)
+          let result = sf._align_python3(deepcopy(matrix2))
+          Assert Equals(result, matrix2_aligned)
+        End
+
+        It adds white spaces to each columns to make the length of each columns fixed (case 3)
+          let result = sf._align_python3(deepcopy(matrix3))
+          Assert Equals(result, matrix3_aligned)
+        End
+      End
+    endif
+
+  End
+End
