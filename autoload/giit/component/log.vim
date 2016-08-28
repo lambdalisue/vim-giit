@@ -1,5 +1,6 @@
 let s:BufferAnchor = vital#giit#import('Vim.Buffer.Anchor')
 let s:BufferObserver = vital#giit#import('Vim.Buffer.Observer')
+let s:ListChunker = vital#giit#import('Data.List.Chunker')
 let s:Action = vital#giit#import('Action')
 let s:Selector = vital#giit#import('Selector')
 
@@ -41,12 +42,11 @@ function! s:on_BufReadCmd() abort
         \ git,
         \ giit#meta#require('options')
         \)
-  let candidates = giit#operation#log#parse(
-        \ git,
-        \ result.content
-        \)
-  let selector = s:Selector.get()
-  call selector.assign_candidates(candidates)
+  let chunker = s:ListChunker.new(1000, result.content)
+  let chunker.git = git
+  let chunker.selector = s:Selector.get()
+  call chunker.selector.assign_candidates([])
+  call timer_start(0, function('s:extend_candidates', [chunker]))
 endfunction
 
 
@@ -91,4 +91,14 @@ function! s:initialize_buffer(static_options) abort
   setlocal buftype=nofile nobuflisted
   setlocal filetype=gitcommit
   setlocal winfixheight
+endfunction
+
+function! s:extend_candidates(chunker, timer_id) abort
+  let chunk = a:chunker.next()
+  if empty(chunk)
+    return
+  endif
+  let candidates = giit#operation#log#parse(a:chunker.git, chunk)
+  call a:chunker.selector.extend_candidates(candidates)
+  call timer_start(10, function('s:extend_candidates', [a:chunker]))
 endfunction
