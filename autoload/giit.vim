@@ -3,6 +3,7 @@ let s:Prompt = vital#giit#import('Vim.Prompt')
 let s:Exception = vital#giit#import('Vim.Exception')
 let s:BufferObserver = vital#giit#import('Vim.Buffer.Observer')
 
+
 function! giit#define_variables(prefix, defaults) abort
   let prefix = empty(a:prefix) ? 'g:giit' : 'g:giit#' . a:prefix
   for [key, value] in items(a:defaults)
@@ -28,19 +29,45 @@ function! giit#expand(expr) abort
 endfunction
 
 
+" Default variable -----------------------------------------------------------
 call giit#define_variables('', {
       \ 'test': 0,
+      \ 'debug': -1,
       \ 'complete_threshold': 30,
       \})
-call s:Prompt.set_config({
-      \ 'batch': g:giit#test,
-      \})
-call s:Exception.register(
-      \ giit#exception#define(),
-      \)
 
-" Automatically start observation when it's sourced
+
+" Autocmd --------------------------------------------------------------------
 augroup giit_internal
   autocmd! *
   autocmd User GiitModifiedPost nested call s:BufferObserver.update_all()
 augroup END
+
+
+" Exception ------------------------------------------------------------------
+function! s:exception_handler(exception) abort
+  let m = matchlist(
+        \ a:exception,
+        \ '^vital: Git\.Term: ValidationError: \(.*\)',
+        \)
+  if !empty(m)
+    call s:Prompt.warn('giit: ' . m[1])
+    return 1
+  endif
+  return 0
+endfunction
+call s:Exception.register(
+      \ function('s:exception_handler')
+      \)
+
+" Prompt ---------------------------------------------------------------------
+function! s:prompt_is_batch() abort
+  return g:giit#test
+endfunction
+function! s:prompt_is_debug() abort
+  return g:giit#debug == -1 ? &verbose : g:giit#debug
+endfunction
+call s:Prompt.set_config({
+      \ 'batch': function('s:prompt_is_batch'),
+      \ 'debug': function('s:prompt_is_debug'),
+      \})
