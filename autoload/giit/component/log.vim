@@ -42,6 +42,10 @@ function! s:on_BufReadCmd() abort
         \ git,
         \ giit#meta#require('options')
         \)
+  if result.status
+    call giit#operation#inform(result)
+    return
+  endif
   let chunker = s:ListChunker.new(1000, result.content)
   let chunker.git = git
   let chunker.selector = s:Selector.get()
