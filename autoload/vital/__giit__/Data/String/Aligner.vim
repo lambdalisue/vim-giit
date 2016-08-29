@@ -1,3 +1,5 @@
+scriptencoding utf-8
+
 let s:scriptroot = expand('<sfile>:p:h')
 let s:is_windows = has('win32') || has('win64')
 
@@ -82,20 +84,23 @@ endif
 if !has('nvim') && has('python')
   python import vim
   function! s:_align_python(matrix) abort
+    if empty(a:matrix)
+      return []
+    endif
     python << EOF
 def _temporary_scope():
-  strdisplaywidth = vim.Function('strdisplaywidth')
+  strwidth = vim.Function('strwidth')
   matrix = vim.bindeval('a:matrix')
   # Find longest lengths of each column
   longests = [0] * len(matrix[0])
   for r, row_matrix in enumerate(matrix):
     for c, value in enumerate(row_matrix):
-      longests[c] = max(longests[c], strdisplaywidth(value))
+      longests[c] = max(longests[c], strwidth(value))
   # Add padding to each columns
   whitespaces = ' ' * max(longests)
   for r, row_matrix in enumerate(matrix):
     for c, value in enumerate(row_matrix):
-      padding = longests[c] - strdisplaywidth(value)
+      padding = longests[c] - strwidth(value)
       if padding:
         matrix[r][c] += whitespaces[:padding]
 _temporary_scope()
@@ -108,20 +113,23 @@ endif
 if !has('nvim') && has('python3')
   python3 import vim
   function! s:_align_python3(matrix) abort
+    if empty(a:matrix)
+      return []
+    endif
     python3 << EOF
 def _temporary_scope():
-  strdisplaywidth = vim.Function('strdisplaywidth')
+  strwidth = vim.Function('strwidth')
   matrix = vim.bindeval('a:matrix')
   # Find longest lengths of each column
   longests = [0] * len(matrix[0])
   for r, row_matrix in enumerate(matrix):
     for c, value in enumerate(row_matrix):
-      longests[c] = max(longests[c], strdisplaywidth(value))
+      longests[c] = max(longests[c], strwidth(value))
   # Add padding to each columns
-  whitespaces = ' ' * max(longests)
+  whitespaces = b' ' * max(longests)
   for r, row_matrix in enumerate(matrix):
     for c, value in enumerate(row_matrix):
-      padding = longests[c] - strdisplaywidth(value)
+      padding = longests[c] - strwidth(value)
       if padding:
         matrix[r][c] += whitespaces[:padding]
 _temporary_scope()
