@@ -1,4 +1,5 @@
 let s:Cache = vital#giit#import('System.Cache.Memory')
+let s:Exception = vital#giit#import('Vim.Exception')
 
 function! giit#meta#require(name) abort
   return giit#meta#require_at('%', a:name)
@@ -7,8 +8,8 @@ endfunction
 function! giit#meta#require_at(expr, name) abort
   let meta = s:meta(a:expr)
   if !meta.has(a:name)
-    call giit#throw(printf(
-          \ 'An required meta value "%s" does not exist on "%s"',
+    throw s:Exception.critical(printf(
+          \ 'giit: An required meta value "%s" does not exist on "%s"',
           \ a:name,
           \ bufname(a:expr),
           \))

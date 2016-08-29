@@ -75,7 +75,7 @@ function! s:on_checkout(candidates, options) abort
   let args = filter(args, '!empty(v:val)')
   let result = git.execute(args)
   if result.status
-    call giit#throw(result)
+    call giit#operation#inform(result, options)
   endif
   call giit#trigger_modified()
 endfunction

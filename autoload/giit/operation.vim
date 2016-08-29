@@ -3,77 +3,19 @@ let s:Dict = vital#giit#import('Data.Dict')
 let s:Prompt = vital#giit#import('Vim.Prompt')
 let s:DictOption = vital#giit#import('Data.Dict.Option')
 let s:GitProcess = vital#giit#import('Git.Process')
+let s:Exception = vital#giit#import('Vim.Exception')
 
 
 " Pubic ----------------------------------------------------------------------
-function! giit#operation#command(bang, range, args) abort
-  let parser  = s:get_parser()
-  let options = parser.parse(a:bang, a:range, a:args)
-  if !empty(options)
-    let args  = join(options.__unknown__)
-    let name  = get(options, 'command', '')
-    let git = giit#core#get()
-    try
-      if a:bang ==# '!'
-        call s:GitProcess.shell(git, map(
-              \ s:DictOption.split_args(a:args),
-              \ 'giit#expand(v:val)'
-              \))
-      else
-        try
-          let funcname = printf(
-                \ 'giit#operation#%s#command',
-                \ substitute(name, '-', '_', 'g'),
-                \)
-          call call(funcname, [a:bang, a:range, args])
-        catch /^Vim\%((\a\+)\)\=:E117/
-          " fail silently and execute git command
-          call s:GitProcess.execute(git, map(
-                \ s:DictOption.split_args(a:args),
-                \ 'giit#expand(v:val)',
-                \))
-        endtry
-      endif
-    catch /^\%(vital: Git[:.]\|giit:\)/
-      call giit#handle_exception()
-    endtry
-  endif
+function! giit#operation#command(...) abort
+  return s:Exception.call(function('s:command'), a:000)
 endfunction
 
 function! giit#operation#complete(arglead, cmdline, cursorpos) abort
-  let bang    = a:cmdline =~# '^[^ ]\+!' ? '!' : ''
-  let cmdline = substitute(a:cmdline, '^[^ ]\+!\?\s', '', '')
-  let cmdline = substitute(cmdline, '[^ ]\+$', '', '')
-
-  let parser  = s:get_parser()
-  let options = parser.parse(bang, [0, 0], cmdline)
-  if !empty(options)
-    let name = get(options, 'command', '')
-    try
-      if bang !=# '!'
-        try
-          let funcname = printf(
-                \ 'giit#operation#%s#complete',
-                \ substitute(name, '-', '_', 'g'),
-                \)
-          return call(funcname, [a:arglead, cmdline, a:cursorpos])
-        catch /^Vim\%((\a\+)\)\=:E117/
-          " fail silently
-        endtry
-      endif
-      " complete filename
-      return giit#util#complete#filename(a:arglead, cmdline, a:cursorpos)
-    catch /^\%(vital: Git[:.]\|giit:\)/
-      " fail silently
-      call s:Prompt.debug(v:exception)
-      call s:Prompt.debug(v:throwpoint)
-      return []
-    endtry
-  endif
-  return parser.complete(a:arglead, a:cmdline, a:cursorpos)
+  return s:Exception.call(function('s:complete'), a:000)
 endfunction
 
-function! giit#operation#display_result(result, options) abort
+function! giit#operation#inform(result, options) abort
   if get(a:options, 'quiet')
     return
   endif
@@ -87,8 +29,71 @@ function! giit#operation#display_result(result, options) abort
   endfor
 endfunction
 
+function! giit#operation#throw(result, options) abort
+  call giit#operation#inform(a:result, a:options)
+  throw s:Exception.error('')
+endfunction
+
 
 " Private --------------------------------------------------------------------
+function! s:command(bang, range, args) abort
+  let parser  = s:get_parser()
+  let options = parser.parse(a:bang, a:range, a:args)
+  if empty(options)
+    return
+  endif
+
+  let name = get(options, 'command', '')
+  if !empty(name) && a:bang !=# '!'
+    try
+      let fname = printf(
+            \ 'giit#operation#%s#command',
+            \ substitute(name, '-', '_', 'g')
+            \)
+      return call(fname, [a:bang, a:range, join(options.__unknown__)])
+    catch /^Vim\%((\a\+)\)\=:E117/
+      " fail silently
+    endtry
+  endif
+
+  let git = giit#core#get()
+  let args = map(s:DictOption.split_args(a:args), 'giit#expand(v:val)')
+  let result = s:GitProcess.shell(git, args, {
+        \ 'stdout': 1,
+        \ 'stderr': 1,
+        \})
+  if a:args !~# '\<\%(-q\|--quiet\)\>'
+    call giit#operation#inform(result, {})
+  endif
+  return result
+endfunction
+
+function! s:complete(arglead, cmdline, cursorpos) abort
+  let bang    = a:cmdline =~# '^[^ ]\+!' ? '!' : ''
+  let cmdline = substitute(a:cmdline, '^[^ ]\+!\?\s', '', '')
+  let cmdline = substitute(cmdline, '[^ ]\+$', '', '')
+
+  let parser  = s:get_parser()
+  let options = parser.parse(bang, [0, 0], cmdline)
+  if !empty(options)
+    let name = get(options, 'command', '')
+    if bang !=# '!'
+      try
+        let fname = printf(
+              \ 'giit#operation#%s#complete',
+              \ substitute(name, '-', '_', 'g'),
+              \)
+        return call(fname, [a:arglead, cmdline, a:cursorpos])
+      catch /^Vim\%((\a\+)\)\=:E117/
+        " fail silently
+      endtry
+    endif
+    " complete filename
+    return giit#util#complete#filename(a:arglead, cmdline, a:cursorpos)
+  endif
+  return parser.complete(a:arglead, a:cmdline, a:cursorpos)
+endfunction
+
 function! s:complete_command(arglead, cmdline, cursorpos, ...) abort
   let candidates = filter([
       \ 'add',

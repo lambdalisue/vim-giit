@@ -42,7 +42,7 @@ function! s:on_BufReadCmd() abort
         \ giit#meta#require('options')
         \)
   if result.status
-    call giit#throw(result)
+    call giit#operation#inform(result)
   endif
   let candidates = giit#operation#status#parse(
         \ git,

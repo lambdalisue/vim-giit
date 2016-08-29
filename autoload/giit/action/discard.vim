@@ -1,6 +1,7 @@
 let s:File = vital#giit#import('System.File')
 let s:Path = vital#giit#import('System.Filepath')
 let s:Prompt = vital#giit#import('Vim.Prompt')
+let s:Exception = vital#giit#import('Vim.Exception')
 
 
 function! giit#action#discard#define(binder) abort
@@ -50,7 +51,7 @@ function! s:on_discard(candidates, options) abort dict
       echo '- ' . s:Path.relpath(candidate.path)
     endfor
     if !s:Prompt.confirm('Are you sure to discard the changes?')
-      call giit#throw('Cancel: The operation has canceled by user')
+      throw s:Exception.info('giit: The operation has canceled by user')
     endif
   endif
   " delete untracked files

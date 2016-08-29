@@ -3,6 +3,7 @@ let s:Git = vital#giit#import('Git')
 let s:GitCore = vital#giit#import('Git.Core')
 let s:GitUtil = vital#giit#import('Git.Util')
 let s:GitProcess = vital#giit#import('Git.Process')
+let s:Exception = vital#giit#import('Vim.Exception')
 
 if !exists('s:refs')
   let s:refs = {}
@@ -20,8 +21,8 @@ function! giit#core#get_or_fail(...) abort
   if !empty(git.worktree)
     return git
   endif
-  call giit#throw(printf(
-        \ 'No git repository for a buffer "%s" is found.',
+  throw s:Exception.warn(printf(
+        \ 'giit: No git repository for a buffer "%s" is found.',
         \ expand(expr),
         \))
 endfunction

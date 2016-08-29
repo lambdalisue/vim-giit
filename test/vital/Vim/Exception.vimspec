@@ -62,6 +62,10 @@ Describe Vim.Exception
     It throws message part of {exception} if the category is Critical
       Throws /^foobar$/ Exception.handle(Exception.critical('foobar'))
     End
+
+    It tries extra handlers if {exception} does not match the pattern
+      Skip Write test
+    End
   End
 
   Describe .call()
@@ -97,6 +101,24 @@ Describe Vim.Exception
       call Exception.call(instance.test_funcref, args, instance)
       let messages = join(Prompt.capture('messages'), "\n")
       Assert Match(messages, '\<foo\>')
+    End
+  End
+
+  Describe .register()
+    It register an extra {handler}
+      Skip Write test
+    End
+  End
+
+  Describe .unregister()
+    It unregister an extra {handler}
+      Skip Write test
+    End
+  End
+
+  Describe .get_default_handler()
+    It returns a default handler instance
+      Skip Write test
     End
   End
 End

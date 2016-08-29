@@ -1,5 +1,6 @@
 let s:Path = vital#giit#import('System.Filepath')
 let s:Prompt = vital#giit#import('Vim.Prompt')
+let s:Exception = vita#giit#import('Vim.Exception')
 let s:BufferObserver = vital#giit#import('Vim.Buffer.Observer')
 
 function! giit#define_variables(prefix, defaults) abort
@@ -18,15 +19,6 @@ function! giit#trigger_modified() abort
   call giit#util#doautocmd('User', 'GiitModifiedPost')
 endfunction
 
-function! giit#throw(msg) abort
-  throw printf('giit: %s', a:msg)
-endfunction
-
-function! giit#handle_exception() abort
-  call s:Prompt.error(v:exception)
-  call s:Prompt.debug(v:throwpoint)
-endfunction
-
 function! giit#expand(expr) abort
   let path = giit#meta#get_at(a:expr, 'filename', '')
   if empty(path)
@@ -43,6 +35,9 @@ call giit#define_variables('', {
 call s:Prompt.set_config({
       \ 'batch': g:giit#test,
       \})
+call s:Exception.register(
+      \ giit#exception#define(),
+      \)
 
 " Automatically start observation when it's sourced
 augroup giit_internal

@@ -58,7 +58,7 @@ function! s:on_BufReadCmd() abort
         \ giit#meta#require('options')
         \)
   if result.status
-    call giit#throw(result)
+    call giit#operation#inform(result)
   endif
   call s:Buffer.edit_content(result.content)
   call giit#util#doautocmd('BufRead')
@@ -71,7 +71,7 @@ function! s:on_BufWriteCmd() abort
         \ 'content': getline(1, '$'),
         \})
   if result.status
-    call giit#throw(result)
+    call giit#operation#inform(result)
   endif
   setlocal nomodified
 endfunction

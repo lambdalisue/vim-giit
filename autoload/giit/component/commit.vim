@@ -83,5 +83,5 @@ function! s:commit(git, options) abort
   let options.file = s:Path.join(a:git.repository, 'COMMIT_EDITMSG')
   let options.cleanup = get(options, 'cleanup', 'strip')
   let result = giit#operation#commit#execute(a:git, options)
-  call giit#operation#display_result(result, a:options)
+  call giit#operation#inform(result, a:options)
 endfunction

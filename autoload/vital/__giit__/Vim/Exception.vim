@@ -1,8 +1,9 @@
 let s:default_handler = {}
-let s:handlers = [s:default_handler]
+let s:handlers = []
 
 function! s:_vital_loaded(V) abort
   let s:Prompt = a:V.import('Vim.Prompt')
+  call s:register(s:get_default_handler())
 endfunction
 
 function! s:_vital_depends() abort
@@ -40,6 +41,16 @@ function! s:critical(msg) abort
   return s:_throw('Critical', a:msg)
 endfunction
 
+function! s:handle(...) abort
+  let l:exception = get(a:000, 0, v:exception)
+  for handler in s:handlers
+    if handler.handle(l:exception)
+      return
+    endif
+  endfor
+  throw l:exception
+endfunction
+
 function! s:call(funcref, args, ...) abort
   let instance = get(a:000, 0, 0)
   try
@@ -53,18 +64,19 @@ function! s:call(funcref, args, ...) abort
   endtry
 endfunction
 
-function! s:handle(...) abort
-  let l:exception = get(a:000, 0, v:exception)
-  for handler in s:handlers
-    if handler.handle(l:exception)
-      return
-    endif
-  endfor
-  throw l:exception
-endfunction
-
 function! s:register(handler) abort
   call add(s:handlers, a:handler)
+endfunction
+
+function! s:unregister(handler) abort
+  let index = index(s:handlers, a:handler)
+  if index != -1
+    call remove(s:handlers, index)
+  endif
+endfunction
+
+function! s:get_default_handler() abort
+  return deepcopy(s:default_handler)
 endfunction
 
 
