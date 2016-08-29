@@ -1,5 +1,6 @@
 let s:BufferAnchor = vital#giit#import('Vim.Buffer.Anchor')
 let s:BufferObserver = vital#giit#import('Vim.Buffer.Observer')
+let s:ListChunker = vital#giit#import('Data.List.Chunker')
 let s:Action = vital#giit#import('Action')
 let s:Selector = vital#giit#import('Selector')
 
@@ -43,13 +44,13 @@ function! s:on_BufReadCmd() abort
         \)
   if result.status
     call giit#operation#inform(result)
+    return
   endif
-  let candidates = giit#operation#status#parse(
-        \ git,
-        \ result.content
-        \)
-  let selector = s:Selector.get()
-  call selector.assign_candidates(candidates)
+  let chunker = s:ListChunker.new(1000, result.content)
+  let chunker.git = git
+  let chunker.selector = s:Selector.get()
+  call chunker.selector.assign_candidates([])
+  call timer_start(0, function('s:extend_candidates', [chunker]))
 endfunction
 
 
@@ -97,4 +98,14 @@ function! s:initialize_buffer(static_options) abort
 
   nnoremap <buffer><silent> <Plug>(giit-switch-commit) :<C-u>Giit commit<CR>
   nmap <buffer><nowait> <C-^> <Plug>(giit-switch-commit)
+endfunction
+
+function! s:extend_candidates(chunker, timer_id) abort
+  let chunk = a:chunker.next()
+  if empty(chunk)
+    return
+  endif
+  let candidates = giit#operation#status#parse(a:chunker.git, chunk)
+  call a:chunker.selector.extend_candidates(candidates)
+  call timer_start(10, function('s:extend_candidates', [a:chunker]))
 endfunction
