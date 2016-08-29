@@ -75,12 +75,12 @@ function! s:unregister(handler) abort
 endfunction
 
 function! s:get_default_handler() abort
-  return function('s:default_handler')
+  return function('s:_default_handler')
 endfunction
 
 
 " Handler --------------------------------------------------------------------
-function! s:default_handler(exception) abort
+function! s:_default_handler(exception) abort
   let m = matchlist(a:exception, '^vital: Vim\.Exception: \(\w\+\): \(.*\)')
   if len(m)
     let category = m[1]
