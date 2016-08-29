@@ -1,4 +1,3 @@
-let s:default_handler = {}
 let s:handlers = []
 
 function! s:_vital_loaded(V) abort
@@ -43,8 +42,8 @@ endfunction
 
 function! s:handle(...) abort
   let l:exception = get(a:000, 0, v:exception)
-  for handler in s:handlers
-    if handler.handle(l:exception)
+  for Handler in s:handlers
+    if call(Handler, [l:exception])
       return
     endif
   endfor
@@ -76,12 +75,12 @@ function! s:unregister(handler) abort
 endfunction
 
 function! s:get_default_handler() abort
-  return deepcopy(s:default_handler)
+  return function('s:default_handler')
 endfunction
 
 
 " Handler --------------------------------------------------------------------
-function! s:default_handler.handle(exception) abort
+function! s:default_handler(exception) abort
   let m = matchlist(a:exception, '^vital: Vim\.Exception: \(\w\+\): \(.*\)')
   if len(m)
     let category = m[1]
