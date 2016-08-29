@@ -1,6 +1,6 @@
 let s:Path = vital#giit#import('System.Filepath')
 let s:Prompt = vital#giit#import('Vim.Prompt')
-let s:Exception = vita#giit#import('Vim.Exception')
+let s:Exception = vital#giit#import('Vim.Exception')
 let s:BufferObserver = vital#giit#import('Vim.Buffer.Observer')
 
 function! giit#define_variables(prefix, defaults) abort
