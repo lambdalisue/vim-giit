@@ -12,13 +12,13 @@ endif
 function! giit#core#get(...) abort
   let expr = get(a:000, 0, '%')
   let refinfo = s:get_refinfo(expr)
-  return s:refs[refinfo.refname]
+  return get(s:refs, refinfo.refname, {})
 endfunction
 
 function! giit#core#get_or_fail(...) abort
   let expr = get(a:000, 0, '%')
   let git = giit#core#get(expr)
-  if !empty(git.worktree)
+  if !empty(git)
     return git
   endif
   throw s:Exception.warn(printf(
