@@ -67,9 +67,6 @@ function! giit#operation#diff#command(bang, range, args) abort
     return
   endif
   let git = giit#core#get_or_fail()
-  if !empty(options.__unknown__)
-    let options.filename = options.__unknown__[0]
-  endif
   call giit#component#diff#open(git, options)
 endfunction
 
