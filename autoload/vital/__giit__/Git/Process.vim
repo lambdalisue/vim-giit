@@ -1,5 +1,6 @@
 function! s:_vital_loaded(V) abort
   let s:Dict = a:V.import('Data.Dict')
+  let s:String = a:V.import('Data.String')
   let s:Process = a:V.import('System.Process')
   let s:config = {
         \ 'executable': 'git',
@@ -9,6 +10,7 @@ endfunction
 function! s:_vital_depends() abort
   return [
         \ 'Data.Dict',
+        \ 'Data.String',
         \ 'System.Process',
         \]
 endfunction
@@ -78,11 +80,19 @@ function! s:shell(git, args, ...) abort
     let stderr = tempname()
     let args += ['2>', fnameescape(stderr)]
   endif
-  execute '!' . join(args)
-  return {
+  if options.stdout
+    silent execute '!' . join(args)
+  else
+    execute '!' . join(args)
+  endif
+  let result = {
         \ 'args': args,
         \ 'status': v:shell_error,
-        \ 'stdout': empty(stdout) ? [] : readfile(stdout),
-        \ 'stderr': empty(stderr) ? [] : readfile(stderr),
+        \ 'options': options,
         \}
+  let result.content = empty(stdout) ? [] : readfile(stdout)
+  let result.output = s:String.join_posix_lines(result.content)
+  let result.error = empty(stderr) ? '' : s:String.join_posix_lines(readfile(stderr))
+  let result.success = result.status ? 0 : 1
+  return result
 endfunction
