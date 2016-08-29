@@ -79,12 +79,10 @@ function! s:shell(git, args, ...) abort
   if options.stderr
     let stderr = tempname()
     let args += ['2>', fnameescape(stderr)]
-  endif
-  if options.stdout
-    silent execute '!' . join(args)
   else
-    execute '!' . join(args)
+    let args += ['2>&1']
   endif
+  silent execute '!' . join(args)
   let result = {
         \ 'args': args,
         \ 'status': v:shell_error,

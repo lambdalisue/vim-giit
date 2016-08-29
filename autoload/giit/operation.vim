@@ -22,10 +22,10 @@ function! giit#operation#inform(result, options) abort
   let [hl, prefix] = a:result.status
         \ ? ['WarningMsg', 'Fail']
         \ : ['Title', 'OK']
-  redraw
-  call s:Prompt.echomsg(hl, prefix . ': ' . join(a:result.args))
+  redraw | echo
+  call s:Prompt.echo(hl, prefix . ': ' . join(a:result.args))
   for line in a:result.content
-    call s:Prompt.echomsg('None', line)
+    call s:Prompt.echo('None', line)
   endfor
 endfunction
 
@@ -60,9 +60,8 @@ function! s:command(bang, range, args) abort
   let args = map(s:DictOption.split_args(a:args), 'giit#expand(v:val)')
   let result = s:GitProcess.shell(git, args, {
         \ 'stdout': 1,
-        \ 'stderr': 1,
         \})
-  if a:args !~# '\<\%(-q\|--quiet\)\>'
+  if a:args !~# '\%(^\|\s\)\%(-q\|--quiet\)\>'
     call giit#operation#inform(result, {})
   endif
   return result
