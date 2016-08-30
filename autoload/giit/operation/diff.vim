@@ -119,8 +119,8 @@ endfunction
 
 function! s:build_args(git, args) abort
   let args = s:Argument.parse(a:args)
-  let commit = args.p.get(0, '')
-  let filename = args.p.get(1, '')
+  let commit = args.get(0, '')
+  let filename = args.get(1, '')
   if args.pop('-p|--patch')
     if commit =~# '^.\{-}\.\.\.\?.*$'
       throw s:Exception.warn(printf(
@@ -135,8 +135,8 @@ function! s:build_args(git, args) abort
       call args.set('--reverse', 1)
     endif
   endif
-  call args.p.apply(0, function('giit#util#normalize#commit_for_diff', [a:git]))
-  call args.p.apply(1, function('giit#util#normalize#relpath', [a:git]))
+  call args.apply(0, function('giit#util#normalize#commit_for_diff', [a:git]))
+  call args.apply(1, function('giit#util#normalize#relpath', [a:git]))
   call args.set('--no-color', 1)
   return args
 endfunction
