@@ -310,12 +310,21 @@ Describe Argument
                 \ '--bar=bar',
                 \ '-f',
                 \])
-          Assert Equals(args.apply('-f|--foo', function('toupper')), '--FOO')
-          Assert Equals(args.get('-f'), 1)
-          Assert Equals(args.get('--foo'), 0)
-          Assert Equals(args.get('--FOO'), 1)
+          Assert Equals(args.apply('-b|--bar', 'toupper(v:val)'), 'BAR')
+          Assert Equals(args.get('-b'), 'BAR')
+          Assert Equals(args.get('--bar'), 'bar')
           Assert Equals(args.raw, [
-                \ '--FOO',
+                \ '--foo',
+                \ '-bBAR',
+                \ '--bar=bar',
+                \ '-f',
+                \])
+
+          Assert Equals(args.apply('-b|--bar', function('tolower')), 'bar')
+          Assert Equals(args.get('-b'), 'bar')
+          Assert Equals(args.get('--bar'), 'bar')
+          Assert Equals(args.raw, [
+                \ '--foo',
                 \ '-bbar',
                 \ '--bar=bar',
                 \ '-f',
@@ -339,6 +348,18 @@ Describe Argument
           Assert Equals(args.raw, [
                 \ '--foo',
                 \ 'FOO',
+                \ '--bar',
+                \ 'bar',
+                \ '--piyo',
+                \ 'piyo',
+                \ '--puyo',
+                \ 'puyo',
+                \])
+
+          Assert Equals(args.apply(0, 'tolower(v:val)'), 'foo')
+          Assert Equals(args.raw, [
+                \ '--foo',
+                \ 'foo',
                 \ '--bar',
                 \ 'bar',
                 \ '--piyo',
@@ -513,8 +534,8 @@ Describe Argument
         Assert Equals(sf._split_option('-f'), ['-f', 1])
       End
 
-      It returns ['--foo', 'foo'] for '--foo=foo'
-        Assert Equals(sf._split_option('--foo=foo'), ['--foo', 'foo'])
+      It returns ['--foo=', 'foo'] for '--foo=foo'
+        Assert Equals(sf._split_option('--foo=foo'), ['--foo=', 'foo'])
       End
 
       It returns ['-f', 'foo'] for '-ffoo'

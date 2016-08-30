@@ -46,7 +46,7 @@ function! s:_split_option(option) abort
     return [a:option, 1]
   else
     let m = matchlist(a:option, '^\(-\w\|--\w\+=\)\(.*\)')
-    return [substitute(m[1], '=$', '', ''), s:_strip_quotes(m[2])]
+    return [m[1], s:_strip_quotes(m[2])]
   endif
 endfunction
 
@@ -117,14 +117,33 @@ function! s:instance.pop(expr_or_n, ...) abort
         \)
 endfunction
 
-function! s:instance.apply(expr_or_n, fn, ...) abort
+function! s:instance.apply(expr_or_n, expr_or_fn, ...) abort
   let start = get(a:000, 0, 0)
   let index = self.search(a:expr_or_n, start)
   if index == -1
     return
   endif
-  let self.raw[index] = a:fn(self.raw[index])
-  return self.raw[index]
+  if type(a:expr_or_n) == type(0)
+    if type(a:expr_or_fn) == type('')
+      let self.raw[index] = map([self.raw[index]], a:expr_or_fn)[0]
+    else
+      let self.raw[index] = a:expr_or_fn(self.raw[index])
+    endif
+    let value = self.raw[index]
+  else
+    let [prefix, value] = s:_split_option(self.raw[index])
+    if type(a:expr_or_fn) == type('')
+      let value = map([value], a:expr_or_fn)[0]
+    else
+      let value = a:expr_or_fn(value)
+    endif
+    if type(value) == type(0) && value == 0
+      call remove(self.raw, index)
+    else
+      let self.raw[index] = prefix . (type(value) == type(0) ? '' : value)
+    endif
+  endif
+  return value
 endfunction
 
 function! s:_search_optional(expr, start) abort dict
