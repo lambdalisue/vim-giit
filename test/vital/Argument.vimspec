@@ -19,13 +19,6 @@ Describe Argument
       Assert KeyExists(args, 'pop')
       Assert KeyExists(args, 'apply')
       Assert KeyExists(args, 'search')
-      Assert KeyExists(args, 'p')
-      Assert KeyExists(args.p, 'raw')
-      Assert KeyExists(args.p, 'get')
-      Assert KeyExists(args.p, 'set')
-      Assert KeyExists(args.p, 'pop')
-      Assert KeyExists(args.p, 'apply')
-      Assert KeyExists(args.p, 'search')
     End
 
     It returns an argument instance with a specified list
@@ -46,45 +39,8 @@ Describe Argument
   End
 
   Context Instance
-    Context Option
-      Describe .iter()
-        Before
-          let args = Argument.new([
-                \ 'foo/bar/hoge.txt',
-                \ '--foo',
-                \ '-bbar',
-                \ '--bar=bar',
-                \ '-f',
-                \])
-        End
-
-        It returns a view for options
-          Assert Equals(args.iter(), [
-                \ '--foo',
-                \ '-bbar',
-                \ '--bar=bar',
-                \ '-f',
-                \])
-        End
-      End
-
-      Describe .len()
-        Before
-          let args = Argument.new([
-                \ 'foo/bar/hoge.txt',
-                \ '--foo',
-                \ '-bbar',
-                \ '--bar=bar',
-                \ '-f',
-                \])
-        End
-
-        It returns the number of options
-          Assert Equals(args.len(), 4)
-        End
-      End
-
-      Describe .get()
+    Describe .get()
+      Context Optional
         Before
           let args = Argument.new([
                 \ 'foo/bar/hoge.txt',
@@ -111,7 +67,36 @@ Describe Argument
         End
       End
 
-      Describe .set()
+      Context Positional
+        Before
+          let args = Argument.new([
+                \ '--foo',
+                \ 'foo',
+                \ '--bar',
+                \ 'bar',
+                \ '--piyo',
+                \ 'piyo',
+                \ '--puyo',
+                \ 'puyo',
+                \])
+        End
+
+        It returns value for {n}
+          Assert Equals(args.get(0), 'foo')
+          Assert Equals(args.get(1), 'bar')
+          Assert Equals(args.get(2), 'piyo')
+          Assert Equals(args.get(3), 'puyo')
+        End
+
+        It returns {default} when {n} is out range
+          Assert Equals(args.get(4), 0)
+          Assert Equals(args.get(4, 'foo'), 'foo')
+        End
+      End
+    End
+
+    Describe .set()
+      Context Optional
         It overwrites exising {expr} argument with {value}
           let args = Argument.new([
                 \ '--foo',
@@ -166,7 +151,97 @@ Describe Argument
         End
       End
 
-      Describe .pop()
+      Context Positional
+        It overwrites exising {n}-th parameter with {value}
+          let args = Argument.new([
+                \ '--foo',
+                \ 'foo',
+                \ '--bar',
+                \ 'bar',
+                \ '--piyo',
+                \ 'piyo',
+                \ '--puyo',
+                \ 'puyo',
+                \])
+          Assert Equals(args.set(0, 'foobar'), 'foobar')
+          Assert Equals(args.raw, [
+                \ '--foo',
+                \ 'foobar',
+                \ '--bar',
+                \ 'bar',
+                \ '--piyo',
+                \ 'piyo',
+                \ '--puyo',
+                \ 'puyo',
+                \])
+        End
+
+        It add a parameter {value} as {n}-th parameter
+          let args = Argument.new([
+                \ '--foo',
+                \ 'foo',
+                \ '--bar',
+                \ 'bar',
+                \ '--piyo',
+                \ 'piyo',
+                \ '--puyo',
+                \ 'puyo',
+                \])
+          Assert Equals(args.set(5, 'hoge'), 'hoge')
+          Assert Equals(args.raw, [
+                \ '--foo',
+                \ 'foo',
+                \ '--bar',
+                \ 'bar',
+                \ '--piyo',
+                \ 'piyo',
+                \ '--puyo',
+                \ 'puyo',
+                \ '',
+                \ 'hoge',
+                \])
+          Assert Equals(args.set(10, 'poyo'), 'poyo')
+          Assert Equals(args.raw, [
+                \ '--foo',
+                \ 'foo',
+                \ '--bar',
+                \ 'bar',
+                \ '--piyo',
+                \ 'piyo',
+                \ '--puyo',
+                \ 'puyo',
+                \ '',
+                \ 'hoge',
+                \ '',
+                \ '',
+                \ '',
+                \ '',
+                \ 'poyo',
+                \])
+          Assert Equals(args.set(10, 'pipi'), 'pipi')
+          Assert Equals(args.raw, [
+                \ '--foo',
+                \ 'foo',
+                \ '--bar',
+                \ 'bar',
+                \ '--piyo',
+                \ 'piyo',
+                \ '--puyo',
+                \ 'puyo',
+                \ '',
+                \ 'hoge',
+                \ '',
+                \ '',
+                \ '',
+                \ '',
+                \ 'pipi',
+                \])
+        End
+      End
+    End
+
+    Describe .pop()
+      Context Optional
         It returns an existing {expr} and remove
           let args = Argument.new([
                 \ '--foo',
@@ -200,7 +275,34 @@ Describe Argument
         End
       End
 
-      Describe .apply()
+      Context Positional
+        It returns an existing {expr} and remove
+          let args = Argument.new([
+                \ '--foo',
+                \ 'foo',
+                \ '--bar',
+                \ 'bar',
+                \ '--piyo',
+                \ 'piyo',
+                \ '--puyo',
+                \ 'puyo',
+                \])
+          Assert Equals(args.pop(0), 'foo')
+          Assert Equals(args.pop(1), 'piyo')
+          Assert Equals(args.raw, [
+                \ '--foo',
+                \ '--bar',
+                \ 'bar',
+                \ '--piyo',
+                \ '--puyo',
+                \ 'puyo',
+                \])
+        End
+      End
+    End
+
+    Describe .apply()
+      Context Optional
         It applies {fn} to {expr}
           let args = Argument.new([
                 \ '--foo',
@@ -221,7 +323,35 @@ Describe Argument
         End
       End
 
-      Describe .search()
+      Context Positional
+        It applies {fn} to {expr}
+          let args = Argument.new([
+                \ '--foo',
+                \ 'foo',
+                \ '--bar',
+                \ 'bar',
+                \ '--piyo',
+                \ 'piyo',
+                \ '--puyo',
+                \ 'puyo',
+                \])
+          Assert Equals(args.apply(0, function('toupper')), 'FOO')
+          Assert Equals(args.raw, [
+                \ '--foo',
+                \ 'FOO',
+                \ '--bar',
+                \ 'bar',
+                \ '--piyo',
+                \ 'piyo',
+                \ '--puyo',
+                \ 'puyo',
+                \])
+        End
+      End
+    End
+
+    Describe .search()
+      Context Optional
         Before
           let args = Argument.new([
                 \ 'foo/bar/hoge.txt',
@@ -250,219 +380,8 @@ Describe Argument
           Assert Equals(args.search('-n|--not-found'), -1)
         End
       End
-    End
 
-    Context Parameter
-      Describe .p.iter()
-        Before
-          let args = Argument.new([
-                \ '--foo',
-                \ 'foo',
-                \ '--bar',
-                \ 'bar',
-                \ '--piyo',
-                \ 'piyo',
-                \ '--puyo',
-                \ 'puyo',
-                \])
-        End
-
-        It returns a view for options
-          Assert Equals(args.p.iter(), [
-                \ 'foo',
-                \ 'bar',
-                \ 'piyo',
-                \ 'puyo',
-                \])
-        End
-      End
-
-      Describe .p.len()
-        Before
-          let args = Argument.new([
-                \ '--foo',
-                \ 'foo',
-                \ '--bar',
-                \ 'bar',
-                \ '--piyo',
-                \ 'piyo',
-                \ '--puyo',
-                \ 'puyo',
-                \])
-        End
-
-        It returns the number of options
-          Assert Equals(args.p.len(), 4)
-        End
-      End
-
-      Describe .p.get()
-        Before
-          let args = Argument.new([
-                \ '--foo',
-                \ 'foo',
-                \ '--bar',
-                \ 'bar',
-                \ '--piyo',
-                \ 'piyo',
-                \ '--puyo',
-                \ 'puyo',
-                \])
-        End
-
-        It returns value for {n}
-          Assert Equals(args.p.get(0), 'foo')
-          Assert Equals(args.p.get(1), 'bar')
-          Assert Equals(args.p.get(2), 'piyo')
-          Assert Equals(args.p.get(3), 'puyo')
-        End
-
-        It returns {default} when {n} is out range
-          Assert Equals(args.p.get(4), 0)
-          Assert Equals(args.p.get(4, 'foo'), 'foo')
-        End
-      End
-
-      Describe .p.set()
-        It overwrites exising {n}-th parameter with {value}
-          let args = Argument.new([
-                \ '--foo',
-                \ 'foo',
-                \ '--bar',
-                \ 'bar',
-                \ '--piyo',
-                \ 'piyo',
-                \ '--puyo',
-                \ 'puyo',
-                \])
-          Assert Equals(args.p.set(0, 'foobar'), 'foobar')
-          Assert Equals(args.raw, [
-                \ '--foo',
-                \ 'foobar',
-                \ '--bar',
-                \ 'bar',
-                \ '--piyo',
-                \ 'piyo',
-                \ '--puyo',
-                \ 'puyo',
-                \])
-        End
-
-        It add a parameter {value} as {n}-th parameter
-          let args = Argument.new([
-                \ '--foo',
-                \ 'foo',
-                \ '--bar',
-                \ 'bar',
-                \ '--piyo',
-                \ 'piyo',
-                \ '--puyo',
-                \ 'puyo',
-                \])
-          Assert Equals(args.p.set(5, 'hoge'), 'hoge')
-          Assert Equals(args.raw, [
-                \ '--foo',
-                \ 'foo',
-                \ '--bar',
-                \ 'bar',
-                \ '--piyo',
-                \ 'piyo',
-                \ '--puyo',
-                \ 'puyo',
-                \ '',
-                \ 'hoge',
-                \])
-          Assert Equals(args.p.set(10, 'poyo'), 'poyo')
-          Assert Equals(args.raw, [
-                \ '--foo',
-                \ 'foo',
-                \ '--bar',
-                \ 'bar',
-                \ '--piyo',
-                \ 'piyo',
-                \ '--puyo',
-                \ 'puyo',
-                \ '',
-                \ 'hoge',
-                \ '',
-                \ '',
-                \ '',
-                \ '',
-                \ 'poyo',
-                \])
-          Assert Equals(args.p.set(10, 'pipi'), 'pipi')
-          Assert Equals(args.raw, [
-                \ '--foo',
-                \ 'foo',
-                \ '--bar',
-                \ 'bar',
-                \ '--piyo',
-                \ 'piyo',
-                \ '--puyo',
-                \ 'puyo',
-                \ '',
-                \ 'hoge',
-                \ '',
-                \ '',
-                \ '',
-                \ '',
-                \ 'pipi',
-                \])
-        End
-      End
-
-      Describe .p.pop()
-        It returns an existing {expr} and remove
-          let args = Argument.new([
-                \ '--foo',
-                \ 'foo',
-                \ '--bar',
-                \ 'bar',
-                \ '--piyo',
-                \ 'piyo',
-                \ '--puyo',
-                \ 'puyo',
-                \])
-          Assert Equals(args.p.pop(0), 'foo')
-          Assert Equals(args.p.pop(1), 'piyo')
-          Assert Equals(args.raw, [
-                \ '--foo',
-                \ '--bar',
-                \ 'bar',
-                \ '--piyo',
-                \ '--puyo',
-                \ 'puyo',
-                \])
-        End
-      End
-
-      Describe .p.apply()
-        It applies {fn} to {expr}
-          let args = Argument.new([
-                \ '--foo',
-                \ 'foo',
-                \ '--bar',
-                \ 'bar',
-                \ '--piyo',
-                \ 'piyo',
-                \ '--puyo',
-                \ 'puyo',
-                \])
-          Assert Equals(args.p.apply(0, function('toupper')), 'FOO')
-          Assert Equals(args.raw, [
-                \ '--foo',
-                \ 'FOO',
-                \ '--bar',
-                \ 'bar',
-                \ '--piyo',
-                \ 'piyo',
-                \ '--puyo',
-                \ 'puyo',
-                \])
-        End
-      End
-
-      Describe .p.search()
+      Context Positional
         Before
           let args = Argument.new([
                 \ '--foo',
@@ -477,20 +396,20 @@ Describe Argument
         End
 
         It returns an index for {n}
-          Assert Equals(args.p.search(0), 1)
-          Assert Equals(args.p.search(1), 3)
-          Assert Equals(args.p.search(2), 5)
-          Assert Equals(args.p.search(3), 7)
+          Assert Equals(args.search(0), 1)
+          Assert Equals(args.search(1), 3)
+          Assert Equals(args.search(2), 5)
+          Assert Equals(args.search(3), 7)
         End
 
         It returns an index for {expr} from {start}
-          Assert Equals(args.p.search(0, 2), 3)
-          Assert Equals(args.p.search(1, 2), 5)
-          Assert Equals(args.p.search(2, 2), 7)
+          Assert Equals(args.search(0, 2), 3)
+          Assert Equals(args.search(1, 2), 5)
+          Assert Equals(args.search(2, 2), 7)
         End
 
         It returns -1 if {expr} is not found
-          Assert Equals(args.p.search(4), -1)
+          Assert Equals(args.search(4), -1)
         End
       End
     End
