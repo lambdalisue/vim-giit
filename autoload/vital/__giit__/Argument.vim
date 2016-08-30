@@ -121,8 +121,9 @@ function! s:instance.apply(expr_or_n, expr_or_fn, ...) abort
   let start = get(a:000, 0, 0)
   let index = self.search(a:expr_or_n, start)
   if index == -1
-    return
+    return self
   endif
+
   if type(a:expr_or_n) == type(0)
     if type(a:expr_or_fn) == type('')
       let self.raw[index] = map([self.raw[index]], a:expr_or_fn)[0]
@@ -143,7 +144,17 @@ function! s:instance.apply(expr_or_n, expr_or_fn, ...) abort
       let self.raw[index] = prefix . (type(value) == type(0) ? '' : value)
     endif
   endif
-  return value
+  return self
+endfunction
+
+function! s:instance.pmap(expr) abort
+  let candidates = copy(self.raw)
+  call filter(candidates, 'v:val !~# ''^--\?\w\+''')
+  call map(candidates, a:expr_or_fn)
+  for index in range(len(candidates))
+    call self.set(index, candidates[index])
+  endfor
+  return self
 endfunction
 
 function! s:_search_optional(expr, start) abort dict

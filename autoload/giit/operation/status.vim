@@ -1,79 +1,32 @@
 let s:Path = vital#giit#import('System.Filepath')
+let s:Argument = vital#giit#import('Argument')
 let s:ArgumentParser = vital#giit#import('ArgumentParser')
 let s:DictOption = vital#giit#import('Data.Dict.Option')
 
 
-function! giit#operation#status#correct(git, options) abort
-  if get(a:options, '__corrected__')
-    return a:options
-  endif
-  let a:options.__corrected__ = 1
-  return a:options
-endfunction
-
-function! giit#operation#status#execute(git, options) abort
-  let args = s:build_args(a:git, a:options)
-  return a:git.execute(args, {
+function! giit#operation#status#execute(git, args) abort
+  call a:args.set('-v|--verbose', 1)
+  call a:args.set('--porcelain', 1)
+  call a:args.set('--no-column', 1)
+  return a:git.execute(a:args.raw, {
         \ 'encode_output': 0,
         \})
 endfunction
 
-function! giit#operation#status#command(bang, range, args) abort
-  let parser  = s:get_parser()
-  let options = parser.parse(a:bang, a:range, a:args)
-  if empty(options)
-    return
-  endif
+function! giit#operation#status#command(bang, range, cmdline) abort
   let git = giit#core#get_or_fail()
-  call giit#component#status#open(git, options)
+  let args = s:Argument.parse(a:cmdline)
+  let args.options = {}
+  let args.options.bang = a:bang ==# '!'
+  let args.options.range = a:range
+  let args.options.opener = args.pop('-o|--opener', '')
+  let args.options.window = args.pop('-w|--window', '')
+  let args.options.selection = args.pop('-s|--selection', '')
+  call giit#component#status#open(git, args)
 endfunction
 
 function! giit#operation#status#complete(arglead, cmdline, cursorpos) abort
-  let parser = s:get_parser()
-  return parser.complete(a:arglead, a:cmdline, a:cursorpos)
-endfunction
-
-function! s:build_args(git, options) abort
-  let options = giit#operation#status#correct(a:git, a:options)
-  let args = s:DictOption.translate(options, {
-        \ 'ignored': 1,
-        \ 'ignore-submodules': 1,
-        \ 'untracked-files': 1,
-        \})
-  let args = ['status', '--verbose', '--porcelain', '--no-column'] + args
-  return filter(args, '!empty(v:val)')
-endfunction
-
-function! s:get_parser() abort
-  if !exists('s:parser')
-    let s:parser = s:ArgumentParser.new({
-          \ 'name': 'Giit status',
-          \ 'description': 'Show and manipulate a status of the repository',
-          \ 'complete_threshold': g:giit#complete_threshold,
-          \})
-    call s:parser.add_argument(
-          \ '--ignored',
-          \ 'show ignored files as well'
-          \)
-    call s:parser.add_argument(
-          \ '--ignore-submodules',
-          \ 'ignore changes to submodules when looking for changes', {
-          \   'choices': ['none', 'untracked', 'dirty', 'all'],
-          \   'on_default': 'all',
-          \})
-    call s:parser.add_argument(
-          \ '--untracked-files', '-u',
-          \ 'show untracked files, optional modes: all, normal, no', {
-          \   'choices': ['all', 'normal', 'no'],
-          \   'on_default': 'all',
-          \})
-    call s:parser.add_argument(
-          \ '--opener', '-o',
-          \ 'a way to open a new buffer such as "edit", "split", etc.', {
-          \   'type': s:ArgumentParser.types.value,
-          \})
-  endif
-  return s:parser
+  return []
 endfunction
 
 

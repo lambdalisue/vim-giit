@@ -32,8 +32,8 @@ endfunction
 
 
 " Private --------------------------------------------------------------------
-function! s:command(bang, range, args) abort
-  let args = s:Argument.parse(a:args)
+function! s:command(bang, range, cmdline) abort
+  let args = s:Argument.parse(a:cmdline)
   let args.options = {}
   let args.options.bang = a:bang ==# '!'
   let args.options.range = a:range
@@ -42,14 +42,14 @@ function! s:command(bang, range, args) abort
   let args.options.window = args.pop('-w|--window', '')
   let args.options.selection = args.pop('-s|--selection', '')
 
-  let name = args.p.pop(0, '')
+  let name = args.p.get(0, '')
   if !empty(name) && !args.options.bang
     try
       let fname = printf(
             \ 'giit#operation#%s#command',
             \ substitute(name, '-', '_', 'g')
             \)
-      return call(fname, [args])
+      return call(fname, [a:bang, a:range, a:cmdline])
     catch /^Vim\%((\a\+)\)\=:E117/
       " fail silently
     endtry
