@@ -3,17 +3,10 @@ let s:Anchor = vital#giit#import('Vim.Buffer.Anchor')
 let s:Argument = vital#giit#import('Argument')
 
 
-function! giit#operation#show#execute(git, args) abort
-  let raw_args = filter(copy(a:args.raw), '!empty(v:val)')
-  return a:git.execute(raw_args, {
-        \ 'encode_output': 0,
-        \})
-endfunction
-
 function! giit#operation#show#command(cmdline, bang, range) abort
   let git = giit#core#get_or_fail()
   let args = s:Argument.new(a:cmdline)
-  let object = args.apply_p(1, function('s:normalize_object', [git]))
+  let object = args.apply_p(1, function('s:expand_object', [git]))
   let bufname = giit#util#buffer#bufname(git, 'show')
   let bufname = printf('%s%s/%s',
         \ bufname,
@@ -59,10 +52,34 @@ function! giit#operation#show#complete(arglead, cmdline, cursorpos) abort
   endif
 endfunction
 
+function! giit#operation#show#execute(git, args) abort
+  let args = a:args.clone()
+  call args.apply_p(1, function('s:normalize_object', [a:git]))
+  call filter(args.raw, '!empty(v:val)')
+  return a:git.execute(args.raw, {
+        \ 'encode_output': 0,
+        \})
+endfunction
 
 function! s:normalize_object(git, key, value) abort
-  let m = matchlist(a:value, '^\([^:]*\)\%(:\(.*\)\)\?$')
-  let commit = giit#util#normalize#commit(a:git, m[1])
-  let filename = giit#util#normalize#relpath(a:git, m[2])
-  return empty(filename) ? commit : commit . ':' . filename
+  return giit#normalize#object(a:git, a:value)
+endfunction
+
+function! s:expand_object(git, _, object) abort
+  let m = matchlist(a:object, '^\([^:]*:\?\)\(.*\)$')
+  if empty(m)
+    return ''
+  endif
+  let relpath = a:git.relpath(giit#expand(m[2]))
+  return m[1] . relpath
+endfunction
+
+function! s:normalize_object(git, _, object) abort
+  let m = matchlist(a:object, '^\([^:]*\)\%(:\(.*\)\)\?$')
+  if empty(m)
+    return ''
+  endif
+  let commit  = giit#normalize#commit(a:git, m[1])
+  let relpath = a:git.relpath(giit#expand(m[2]))
+  return empty(relpath) ? commit : commit . ':' . relpath
 endfunction

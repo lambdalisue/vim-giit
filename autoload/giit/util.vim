@@ -47,21 +47,6 @@ function! giit#util#doautocmd(name, ...) abort
   endtry
 endfunction
 
-function! giit#util#select(selection, ...) abort
-  " Original from mattn/emmet-vim
-  " https://github.com/mattn/emmet-vim/blob/master/autoload/emmet/util.vim#L75-L79
-  let prefer_visual = get(a:000, 0, 0)
-  let line_start = get(a:selection, 0, line('.'))
-  let line_end = get(a:selection, 1, line_start)
-  if line_start == line_end && !prefer_visual
-    call setpos('.', [0, line_start, 1, 0])
-  else
-    call setpos('.', [0, line_end, 1, 0])
-    keepjumps normal! v
-    call setpos('.', [0, line_start, 1, 0])
-  endif
-endfunction
-
 function! giit#util#syncbind() abort
   " NOTE:
   " Somehow syncbind does not just after opening a buffer so use

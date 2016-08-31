@@ -36,12 +36,12 @@ function! giit#operation#diff#correct(git, options) abort
   let commit = get(a:options, 'commit', '')
   let commit = empty(commit)
         \ ? commit
-        \ : giit#util#normalize#commit_for_diff(a:git, commit)
+        \ : giit#normalize#commit_for_diff(a:git, commit)
 
   let filename = get(a:options, 'filename', '')
   let filename = empty(filename)
         \ ? filename
-        \ : giit#util#normalize#relpath(a:git, filename)
+        \ : giit#normalize#relpath(a:git, filename)
 
   let object = empty(filename)
         \ ? commit
@@ -71,8 +71,8 @@ function! giit#operation#diff#execute(git, args) abort
       call a:args.set('--reverse', 1)
     endif
   endif
-  call a:args.p.apply(0, function('giit#util#normalize#commit_for_diff', [a:git]))
-  call a:args.p.apply(1, function('giit#util#normalize#relpath', [a:git]))
+  call a:args.p.apply(0, function('giit#normalize#commit_for_diff', [a:git]))
+  call a:args.p.apply(1, function('giit#normalize#relpath', [a:git]))
   call a:args.set('--no-color', 1)
   return a:git.execute(a:args.raw, {
         \ 'encode_output': 0,
@@ -135,8 +135,63 @@ function! s:build_args(git, args) abort
       call args.set('--reverse', 1)
     endif
   endif
-  call args.apply(0, function('giit#util#normalize#commit_for_diff', [a:git]))
-  call args.apply(1, function('giit#util#normalize#relpath', [a:git]))
+  call args.apply(0, function('giit#normalize#commit_for_diff', [a:git]))
+  call args.apply(1, function('giit#normalize#relpath', [a:git]))
   call args.set('--no-color', 1)
   return args
+endfunction
+
+function! s:open2(git, options) abort
+  let options = extend({
+        \ 'patch': 0,
+        \ 'cached': 0,
+        \ 'reverse': 0,
+        \ 'opener': '',
+        \ 'selection': [],
+        \}, a:options)
+  let filename = empty(options.filename)
+        \ ? giit#normalize#relpath(a:git, giit#expand('%'))
+        \ : options.filename
+  let [lhs, rhs] = giit#operation#diff#split_commit(a:git, a:options)
+  let vertical = matchstr(&diffopt, 'vertical')
+  let loptions = {
+        \ 'patch': !options.reverse && options.patch,
+        \ 'commit': lhs,
+        \ 'filename': filename,
+        \ 'worktree': lhs ==# s:WORKTREE,
+        \}
+  let roptions = {
+        \ 'silent': 1,
+        \ 'patch': options.reverse && options.patch,
+        \ 'commit': rhs,
+        \ 'filename': filename,
+        \ 'worktree': rhs ==# s:WORKTREE,
+        \}
+
+  call s:BufferAnchor.focus_if_available(options.opener)
+  let ret1 = giit#component#show#open(a:git,
+        \ extend(options.reverse ? loptions : roptions, {
+        \  'opener': options.opener,
+        \  'window': 'diff2_rhs',
+        \  'selection': options.selection,
+        \ }
+        \))
+  diffthis
+
+  let ret2 = giit#component#show#open(a:git,
+        \ extend(options.reverse ? roptions : loptions, {
+        \  'opener': vertical ==# 'vertical'
+        \    ? 'leftabove vertical split'
+        \    : 'leftabove split',
+        \  'window': 'diff2_lhs',
+        \  'selection': options.selection,
+        \ }
+        \))
+  diffthis
+  diffupdate
+
+  let doom = s:BufferDoom.new()
+  let sign = xor(ret1.loaded, ret2.loaded)
+  call doom.involve(ret1.bufnum, { 'keep': !ret1.loaded && sign })
+  call doom.involve(ret2.bufnum, { 'keep': !ret2.loaded && sign })
 endfunction

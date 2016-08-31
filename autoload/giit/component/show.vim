@@ -25,7 +25,7 @@ function! s:on_BufReadCmd(object, patch) abort
   call s:Buffer.edit_content(result.content)
   call giit#meta#set('args', args)
   call giit#meta#set('commit', matchstr(a:object, '^[^:]*\ze'))
-  call giit#meta#set('filename', matchstr(a:object, '^[^:]*:\zs.*'))
+  call giit#meta#set('filename', matchstr(a:object, '^[^:]*:\zs.*$'))
   call giit#util#doautocmd('BufRead')
   call s:init(a:object, a:patch)
 endfunction
