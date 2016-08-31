@@ -190,6 +190,50 @@ Describe Argument
                 \ '-3b a r',
                 \ '--optional3=B A R',
                 \])
+
+          Assert Same(args.set('-2|--optional2', 1), args)
+          Assert Equals(args.raw, [
+                \ 'positional1:',
+                \ '-1foobar',
+                \ '--optional1=foobar',
+                \ 'positional2:foo',
+                \ '-2',
+                \ '--optional2',
+                \ 'positional3:b a r',
+                \ '-3b a r',
+                \ '--optional3=B A R',
+                \])
+        End
+
+        It adds a term for {query} if missing
+          Assert Same(args.set('-4|--optional4', 1), args)
+          Assert Equals(args.raw, [
+                \ 'positional1:',
+                \ '-1',
+                \ '--optional1',
+                \ 'positional2:foo',
+                \ '-2foo',
+                \ '--optional2=FOO',
+                \ 'positional3:b a r',
+                \ '-3b a r',
+                \ '--optional3=B A R',
+                \ '--optional4',
+                \])
+
+          Assert Same(args.set('-5|--optional5', 'foobar'), args)
+          Assert Equals(args.raw, [
+                \ 'positional1:',
+                \ '-1',
+                \ '--optional1',
+                \ 'positional2:foo',
+                \ '-2foo',
+                \ '--optional2=FOO',
+                \ 'positional3:b a r',
+                \ '-3b a r',
+                \ '--optional3=B A R',
+                \ '--optional4',
+                \ '--optional5=foobar',
+                \])
         End
 
         It removes all terms for {query} when {value} is 0
