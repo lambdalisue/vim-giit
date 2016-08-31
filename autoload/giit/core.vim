@@ -77,8 +77,8 @@ function! s:new_refinfo(expr) abort
 
   " Use filename of the buffer if the buffer is a file like buffer
   let git = {}
-  let path = giit#expand(a:expr)
-  if index(['nofile', 'quickfix', 'help'], buftype) == -1
+  let path = expand(a:expr)
+  if index(['nofile', 'quickfix', 'help'], buftype) == -1 && (filereadable(path) || isdirectory(path))
     let git = s:Git.get(path)
     let git = empty(git) && path !=# resolve(path)
           \ ? s:Git.get(resolve(path))

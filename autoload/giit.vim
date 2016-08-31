@@ -21,10 +21,12 @@ function! giit#trigger_modified() abort
 endfunction
 
 function! giit#expand(expr) abort
-  let path = giit#meta#get_at(a:expr, 'filename', '')
-  if empty(path)
-    let path = expand(a:expr)
+  if empty(a:expr)
+    return ''
   endif
+  let git = giit#core#get()
+  let path = giit#meta#get_at(a:expr, 'filename', expand(a:expr))
+  let path = empty(git) ? s:Path.abspath(path) : git.abspath(path)
   return s:Path.remove_last_separator(path)
 endfunction
 
