@@ -1,3 +1,6 @@
+let s:t_number = type(0)
+let s:t_string = type('')
+
 function! s:_vital_loaded(V) abort
   let s:String = a:V.import('Data.String')
 endfunction
@@ -6,160 +9,82 @@ function! s:_vital_depends() abort
   return ['Data.String']
 endfunction
 
-
-" Public ---------------------------------------------------------------------
-function! s:new(...) abort
-  let args = copy(s:instance)
-  let args.raw = get(a:000, 0, [])
-  return args
-endfunction
-
-function! s:parse(str) abort
-  return s:new(s:_split_args(a:str))
-endfunction
-
-
-" Private --------------------------------------------------------------------
-function! s:_split_args(str) abort
+function! s:_vital_created(module) abort
+  " build pattern for parsing arguments
   let single_quote = '''\zs[^'']\+\ze'''
   let double_quote = '"\zs[^"]\+\ze"'
   let bare_strings = '\%(\\\s\|[^ \t''"]\)\+'
-  let atoms = [single_quote, double_quote, bare_strings]
-  let pattern = '\%(' . join(atoms, '\|') . '\)'
-  return split(a:str, pattern . '*\zs\%(\s\+\|$\)\ze')
-endfunction
-
-function! s:_strip_quotes(str) abort
-  return a:str =~# '^\%(".*"\|''.*''\)$' ? a:str[1:-2] : a:str
-endfunction
-
-function! s:_build_pattern(expr) abort
-  let patterns = map(
-        \ map(split(a:expr, '|'), 's:String.escape_pattern(v:val)'),
-        \ 'v:val =~# ''^--'' ? v:val . ''\>'' : v:val'
+  let s:pattern = printf(
+        \ '\%%(%s\)*\zs\%%(\s\+\|$\)\ze',
+        \ join([single_quote, double_quote, bare_strings], '\|')
         \)
+endfunction
+
+
+function! s:new(...) abort
+  if a:0 > 0
+    let init = type(a:1) == s:t_string ? s:parse(a:1) : a:1
+  else
+    let init = []
+  endif
+  let args = copy(s:args)
+  let args.raw = init
+  return args
+endfunction
+
+function! s:parse(cmdline) abort
+  let terms = split(a:cmdline, s:pattern)
+  let terms = map(terms, 's:strip_quotes(v:val)')
+  for index in range(len(terms))
+    let [key, value] = s:parse_term(terms[index])
+    let value = type(value) == s:t_string
+          \ ? s:strip_quotes(value)
+          \ : value
+    let terms[index] = s:build_term(key, value)
+  endfor
+  return terms
+endfunction
+
+function! s:build_pattern(query) abort
+  let patterns = split(a:query, '|')
+  call map(patterns, 's:String.escape_pattern(v:val)')
+  call map(patterns, 'v:val =~# ''^--\w\+'' ? v:val . ''\>'' : v:val')
   return printf('^\%%(%s\)', join(patterns, '\|'))
 endfunction
 
-function! s:_split_option(option) abort
-  if a:option =~# '^\%(-\w\|--\w\+\)$'
-    return [a:option, 1]
+function! s:strip_quotes(str) abort
+  return a:str =~# '^\%(".*"\|''.*''\)$' ? a:str[1:-2] : a:str
+endfunction
+
+function! s:parse_term(term) abort
+  let m = matchlist(a:term, '^\(-\w\|--\w\+=\)\(.\+\)')
+  if empty(m)
+    return a:term =~# '^--\?\w\+' ? [a:term, 1] : ['', a:term]
   else
-    let m = matchlist(a:option, '^\(-\w\|--\w\+=\)\(.*\)')
-    return [m[1], s:_strip_quotes(m[2])]
+    let [key, value] = m[1:2]
+    return [substitute(key, '=$', '', ''), value]
   endif
 endfunction
 
-function! s:_count_positional(raw) abort
-  return len(filter(copy(a:raw), 'v:val !~# ''^--\?\w\+'''))
-endfunction
-
-
-" Instance -------------------------------------------------------------------
-let s:instance = {}
-
-function! s:instance.search(expr_or_n, ...) abort
-  let start = get(a:000, 0, 0)
-  if type(a:expr_or_n) == type(0)
-    return call(
-          \ 's:_search_positional',
-          \ [a:expr_or_n, start],
-          \ self,
-          \)
+function! s:build_term(key, value) abort
+  if type(a:value) == s:t_number
+    return a:value == 0 ? '' : a:key
+  elseif empty(a:key) || a:key =~# '^-\w$'
+    return a:key . a:value
   else
-    return call(
-          \ 's:_search_optional',
-          \ [a:expr_or_n, start],
-          \ self,
-          \)
+    return a:key . '=' . a:value
   endif
 endfunction
 
-function! s:instance.get(expr_or_n, ...) abort
-  let default = get(a:000, 0, 0)
-  let start = get(a:000, 1, 0)
-  let index = self.search(a:expr_or_n, start)
-  if index == -1
-    return default
-  endif
-  let value = self.raw[index]
-  return s:_strip_quotes(
-        \type(a:expr_or_n) == type(0) ? value : s:_split_option(value)[1]
-        \)
+let s:args = {}
+
+function! s:args.list() abort
+  return filter(copy(self.raw), 'v:val =~# ''^--\?\w\+''')
 endfunction
 
-function! s:instance.set(expr_or_n, value, ...) abort
-  let start = get(a:000, 0, 0)
-  if type(a:expr_or_n) == type(0)
-    return call(
-          \ 's:_set_positional',
-          \ [a:expr_or_n, a:value, start],
-          \ self,
-          \)
-  else
-    return call(
-          \ 's:_set_optional',
-          \ [a:expr_or_n, a:value, start],
-          \ self,
-          \)
-  endif
-endfunction
-
-function! s:instance.pop(expr_or_n, ...) abort
-  let start = get(a:000, 0, 0)
-  let index = self.search(a:expr_or_n, start)
-  if index == -1
-    return get(a:000, 0, 0)
-  endif
-  let value = remove(self.raw, index)
-  return s:_strip_quotes(
-        \type(a:expr_or_n) == type(0) ? value : s:_split_option(value)[1]
-        \)
-endfunction
-
-function! s:instance.apply(expr_or_n, expr_or_fn, ...) abort
-  let start = get(a:000, 0, 0)
-  let index = self.search(a:expr_or_n, start)
-  if index == -1
-    return self
-  endif
-
-  if type(a:expr_or_n) == type(0)
-    if type(a:expr_or_fn) == type('')
-      let self.raw[index] = map([self.raw[index]], a:expr_or_fn)[0]
-    else
-      let self.raw[index] = a:expr_or_fn(self.raw[index])
-    endif
-    let value = self.raw[index]
-  else
-    let [prefix, value] = s:_split_option(self.raw[index])
-    if type(a:expr_or_fn) == type('')
-      let value = map([value], a:expr_or_fn)[0]
-    else
-      let value = a:expr_or_fn(value)
-    endif
-    if type(value) == type(0) && value == 0
-      call remove(self.raw, index)
-    else
-      let self.raw[index] = prefix . (type(value) == type(0) ? '' : value)
-    endif
-  endif
-  return self
-endfunction
-
-function! s:instance.pmap(expr) abort
-  let candidates = copy(self.raw)
-  call filter(candidates, 'v:val !~# ''^--\?\w\+''')
-  call map(candidates, a:expr_or_fn)
-  for index in range(len(candidates))
-    call self.set(index, candidates[index])
-  endfor
-  return self
-endfunction
-
-function! s:_search_optional(expr, start) abort dict
-  let pattern = s:_build_pattern(a:expr)
-  let indices = range(a:start, len(self.raw)-1)
+function! s:args.search(query, ...) abort
+  let pattern = s:build_pattern(a:query)
+  let indices = range(get(a:000, 0, 0), len(self.raw)-1)
   for index in indices
     if self.raw[index] =~# pattern
       return index
@@ -168,54 +93,152 @@ function! s:_search_optional(expr, start) abort dict
   return -1
 endfunction
 
-function! s:_search_positional(n, start) abort dict
+function! s:args.get(query, ...) abort
+  let index = self.search(a:query, get(a:000, 1, 0))
+  if index == -1
+    return get(a:000, 0, 0)
+  endif
+  return s:parse_term(self.raw[index])[1]
+endfunction
+
+function! s:args.set(query, value, ...) abort
+  if type(a:value) == s:t_number && a:value == 0
+    call self.pop(a:query, 0, get(a:000, 0, 0))
+    return self
+  endif
+  let index = self.search(a:query, get(a:000, 0, 0))
+  if index == -1
+    call add(self.raw, s:build_term(split(a:query, '|')[-1], a:value))
+    return self
+  endif
+  while index != -1
+    let self.raw[index] = s:build_term(
+          \ s:parse_term(self.raw[index])[0],
+          \ a:value
+          \)
+    let index = self.search(a:query, index + 1)
+  endwhile
+  return self
+endfunction
+
+function! s:args.pop(query, ...) abort
+  let index = self.search(a:query, get(a:000, 1, 0))
+  if index == -1
+    return get(a:000, 0, 0)
+  endif
+  let value = s:parse_term(self.raw[index])[1]
+  while index != -1
+    call remove(self.raw, index)
+    " NOTE: A term has removed so search from 'index' instead of 'index+1'
+    let index = self.search(a:query, index)
+  endwhile
+  return value
+endfunction
+
+function! s:args.map(expr) abort
+  let indices = filter(
+        \ range(0, len(self.raw)-1),
+        \ 'self.raw[v:val] =~# ''^--\?\w\+'''
+        \)
+  let candidates = map(copy(indices), 's:parse_term(self.raw[v:val])')
+  call map(candidates, a:expr)
+  for i in range(len(candidates))
+    let index = indices[i]
+    let self.raw[index] = call('s:build_term', candidates[i])
+  endfor
+  return self
+endfunction
+
+function! s:args.apply(query, expr, ...) abort
+  let index = self.search(a:query, get(a:000, 1, 0))
+  if index == -1
+    return get(a:000, 0, 0)
+  endif
+  let terms = [s:parse_term(self.raw[index])]
+  call map(terms, a:expr)
+  let self.raw[index] = call('s:build_term', terms[0])
+  let value = self.raw[index]
+  let index = self.search(a:query, index+1)
+  while index != -1
+    let terms = [s:parse_term(self.raw[index])]
+    call map(terms, a:expr)
+    let self.raw[index] = call('s:build_term', terms[0])
+    let index = self.search(a:query, index+1)
+  endwhile
+  return s:parse_term(value)[1]
+endfunction
+
+function! s:args.list_p() abort
+  return filter(copy(self.raw), 'v:val !~# ''^--\?\w\+''')
+endfunction
+
+function! s:args.search_p(nth, ...) abort
   let counter = -1
-  let indices = range(a:start, len(self.raw)-1)
+  let indices = range(get(a:000, 0, 0), len(self.raw)-1)
   for index in indices
     let counter += self.raw[index] !~# '^--\?\w\+'
-    if counter == a:n
+    if counter == a:nth
       return index
     endif
   endfor
   return -1
 endfunction
 
-function! s:_set_optional(expr, value, start) abort dict
-  let index = call('s:_search_optional', [a:expr, a:start], self)
-  if type(a:value) == type(0) && a:value == 0
-    if index > -1
-      let value = remove(self.raw, index)
-    endif
-  else
-    if index > -1
-      let name = s:_split_option(self.raw[index])[0]
-      let repl = (type(a:value) == type('') && name =~# '^--\w\+') ? '%s=%s' : '%s%s'
-      let value = printf(repl, name, a:value)
-      let self.raw[index] = printf(repl, name, a:value)
-    else
-      let name = split(a:expr, '|')[-1]
-      let repl = (type(a:value) == type('') && name =~# '^--\w\+') ? '%s=%s' : '%s%s'
-      let value = printf(repl, name, a:value)
-      call add(self.raw, value)
-    endif
+function! s:args.get_p(nth, ...) abort
+  let index = self.search_p(a:nth, get(a:000, 1, 0))
+  if index == -1
+    return get(a:000, 0, '')
   endif
+  return self.raw[index]
+endfunction
+
+function! s:args.set_p(nth, value, ...) abort
+  if type(a:value) == s:t_number && a:value == 0
+    call self.pop_p(a:nth, '', get(a:000, 0, 0))
+    return self
+  endif
+  let index = self.search_p(a:nth, get(a:000, 0, 0))
+  if index == -1
+    let n = len(filter(copy(self.raw), 'v:val !~# ''^--\?\w\+'''))
+    let self.raw += repeat([''], a:nth - n + 1)
+    let self.raw[-1] = a:value
+  else
+    let self.raw[index] = a:value
+  endif
+  return self
+endfunction
+
+function! s:args.pop_p(nth, ...) abort
+  let index = self.search_p(a:nth, get(a:000, 1, 0))
+  if index == -1
+    return get(a:000, 0, '')
+  endif
+  let value = self.raw[index]
+  call remove(self.raw, index)
   return value
 endfunction
 
-function! s:_set_positional(n, value, start) abort dict
-  let index = call('s:_search_positional', [a:n, a:start], self)
-  if type(a:value) == type(0) && a:value == 0
-    if index > -1
-      call remove(self.raw, index)
-    endif
-  else
-    if index > -1
-      let self.raw[index] = a:value
-    else
-      let delta = a:n - s:_count_positional(self.raw) + 1
-      let self.raw += repeat([''], delta)
-      let self.raw[-1] = a:value
-    endif
+function! s:args.map_p(expr) abort
+  let indices = filter(
+        \ range(0, len(self.raw)-1),
+        \ 'self.raw[v:val] !~# ''^--\?\w\+'''
+        \)
+  let candidates = map(copy(indices), 'self.raw[v:val]')
+  call map(candidates, a:expr)
+  for i in range(len(candidates))
+    let index = indices[i]
+    let self.raw[index] = candidates[i]
+  endfor
+  return self
+endfunction
+
+function! s:args.apply_p(nth, expr, ...) abort
+  let index = self.search_p(a:nth, get(a:000, 1, 0))
+  if index == -1
+    return get(a:000, 0, '')
   endif
-  return a:value
+  let terms = [self.raw[index]]
+  call map(terms, a:expr)
+  let self.raw[index] = terms[0]
+  return terms[0]
 endfunction
