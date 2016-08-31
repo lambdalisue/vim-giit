@@ -2,13 +2,6 @@ let s:Path = vital#giit#import('System.Filepath')
 let s:GitTerm = vital#giit#import('Git.Term')
 
 
-function! giit#util#normalize#relpath(path) abort
-  if empty(a:path)
-    return ''
-  endif
-  
-endfunction
-
 " NOTE:
 " git requires an unix relative path from the repository often
 function! giit#util#normalize#relpath(git, path) abort
@@ -61,4 +54,3 @@ function! giit#util#normalize#commit_for_diff(git, commit) abort
     return a:commit
   endif
 endfunction
-

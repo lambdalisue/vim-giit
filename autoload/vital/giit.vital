@@ -5,7 +5,9 @@ System.File
 Data.Dict
 Text.INI
 Vim.Prompt
-ArgumentParser
 System.Process.Mock
 Vim.BufferManager
 Vim.Buffer.Anchor
+Argument
+Data.List.Chunker
+Vim.Lua.String

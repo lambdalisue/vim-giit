@@ -1,17 +1,3 @@
-function! giit#util#slug() abort
-  return 'matchstr(expand(''<sfile>''), ''\zs[^. ]\+$'')'
-endfunction
-
-function! giit#util#assign(dict, default) abort
-  let clone = type(a:dict) == type(0) ? {} : deepcopy(a:dict)
-  for [key, value] in items(a:default)
-    if empty(get(clone, key))
-      let clone[key] = value
-    endif
-  endfor
-  return clone
-endfunction
-
 function! giit#util#doautocmd(name, ...) abort
   let pattern = get(a:000, 0, '')
   let expr = empty(pattern)
@@ -59,6 +45,10 @@ function! giit#util#syncbind() abort
     autocmd CursorMovedI * call s:syncbind()
   augroup END
   syncbind
+endfunction
+
+function! giit#util#slug() abort
+  return 'matchstr(expand(''<sfile>''), ''\zs[^. ]\+$'')'
 endfunction
 
 

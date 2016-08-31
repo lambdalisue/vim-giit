@@ -61,9 +61,6 @@ function! giit#operation#show#execute(git, args) abort
         \})
 endfunction
 
-function! s:normalize_object(git, key, value) abort
-  return giit#normalize#object(a:git, a:value)
-endfunction
 
 function! s:expand_object(git, _, object) abort
   let m = matchlist(a:object, '^\([^:]*:\?\)\(.*\)$')
@@ -79,7 +76,7 @@ function! s:normalize_object(git, _, object) abort
   if empty(m)
     return ''
   endif
-  let commit  = giit#normalize#commit(a:git, m[1])
+  let commit  = giit#util#normalize#commit(a:git, m[1])
   let relpath = a:git.relpath(giit#expand(m[2]))
   return empty(relpath) ? commit : commit . ':' . relpath
 endfunction

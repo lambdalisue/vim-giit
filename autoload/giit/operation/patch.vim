@@ -12,7 +12,7 @@ function! giit#operation#patch#correct(git, options) abort
   let filename = empty(filename)
         \ ? giit#expand('%')
         \ : filename
-  let filename = giit#normalize#relpath(a:git, filename)
+  let filename = giit#util#normalize#relpath(a:git, filename)
   let content = get(a:options, 'content', '')
   let content = empty(content)
         \ ? getline(1, '$')

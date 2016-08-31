@@ -67,10 +67,6 @@ function! s:get_buffer_manager(window) abort
   return s:{vname}
 endfunction
 
-
-" Obsolute -------------------------------------------------------------------
-" https://github.com/vim-jp/vital.vim/pull/447
-
 function! s:is_preview_opener(opener) abort
   if a:opener =~# '\<ptag\?!\?\>'
     return 1

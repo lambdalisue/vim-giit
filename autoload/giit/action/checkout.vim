@@ -65,12 +65,12 @@ function! s:on_checkout(candidates, options) abort
         \ options.force ? '--force' : '',
         \ options.ours ? '--ours' : '',
         \ options.theirs ? '--theirs' : '',
-        \ giit#normalize#commit(git, options.commit),
+        \ giit#util#normalize#commit(git, options.commit),
         \ '--',
         \]
   let args += map(
         \ copy(a:candidates),
-        \ 'giit#normalize#relpath(git, v:val.path)',
+        \ 'giit#util#normalize#relpath(git, v:val.path)',
         \)
   let args = filter(args, '!empty(v:val)')
   let result = git.execute(args)

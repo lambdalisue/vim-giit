@@ -1,24 +1,9 @@
 let s:Path = vital#giit#import('System.Filepath')
 let s:Prompt = vital#giit#import('Vim.Prompt')
+let s:Config = vital#giit#import('Data.Dict.Config')
+let s:Observer = vital#giit#import('Vim.Buffer.Observer')
 let s:Exception = vital#giit#import('Vim.Exception')
-let s:BufferObserver = vital#giit#import('Vim.Buffer.Observer')
 
-
-function! giit#define_variables(prefix, defaults) abort
-  let prefix = empty(a:prefix) ? 'g:giit' : 'g:giit#' . a:prefix
-  for [key, value] in items(a:defaults)
-    let name = prefix . '#' . key
-    if !exists(name)
-      execute 'let ' . name . ' = ' . string(value)
-    endif
-    unlet value
-  endfor
-endfunction
-
-function! giit#trigger_modified() abort
-  call giit#util#doautocmd('User', 'GiitModifiedPre')
-  call giit#util#doautocmd('User', 'GiitModifiedPost')
-endfunction
 
 function! giit#expand(expr) abort
   if empty(a:expr)
@@ -30,9 +15,14 @@ function! giit#expand(expr) abort
   return s:Path.remove_last_separator(path)
 endfunction
 
+function! giit#trigger_modified() abort
+  call giit#util#doautocmd('User', 'GiitModifiedPre')
+  call giit#util#doautocmd('User', 'GiitModifiedPost')
+endfunction
+
 
 " Default variable -----------------------------------------------------------
-call giit#define_variables('', {
+call s:Config.define('giit', {
       \ 'test': 0,
       \ 'debug': -1,
       \ 'complete_threshold': 30,
@@ -42,7 +32,7 @@ call giit#define_variables('', {
 " Autocmd --------------------------------------------------------------------
 augroup giit_internal
   autocmd! *
-  autocmd User GiitModifiedPost nested call s:BufferObserver.update_all()
+  autocmd User GiitModifiedPost nested call s:Observer.update_all()
 augroup END
 
 

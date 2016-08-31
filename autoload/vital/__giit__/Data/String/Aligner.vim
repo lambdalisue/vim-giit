@@ -1,21 +1,12 @@
 scriptencoding utf-8
 
-let s:scriptroot = expand('<sfile>:p:h')
-let s:is_windows = has('win32') || has('win64')
+function! s:_vital_loaded(V) abort
+  let s:LuaString = a:V.import('Vim.Lua.String')
+endfunction
 
-if s:is_windows
-  function! s:_realpath(path) abort
-    if exists('&shellslash') && &shellslash
-      return a:path
-    else
-      return fnamemodify(a:path, ':gs?/?\\?')
-    endif
-  endfunction
-else
-  function! s:_realpath(path) abort
-    return a:path
-  endfunction
-endif
+function! s:_vital_depends() abort
+  return ['Vim.Lua.String']
+endfunction
 
 function! s:_vital_created(module) abort
   if has('lua')
@@ -34,33 +25,30 @@ function! s:_align_vim(matrix) abort
   " Find longest length of each columns
   let longests = map(copy(cols), '0')
   for row_matrix in a:matrix
-    call map(longests, 'max([v:val, strdisplaywidth(row_matrix[v:key])])')
+    call map(longests, 'max([v:val, strwidth(row_matrix[v:key])])')
   endfor
   " Add padding to each columns
   let whitespaces = repeat(' ', max(longests))
   for row_matrix in a:matrix
-    let paddings = map(copy(longests), 'v:val - strdisplaywidth(row_matrix[v:key])')
+    let paddings = map(copy(longests), 'v:val - strwidth(row_matrix[v:key])')
     call map(row_matrix, 'v:val . (paddings[v:key] > 0 ? whitespaces[:paddings[v:key]-1] : '''')')
   endfor
   return a:matrix
 endfunction
 
 if has('lua')
-  execute printf(
-        \ 'lua package.path = package.path .. ";%s/?.lua"',
-        \ simplify(s:_realpath(s:scriptroot . '/lua'))
-        \)
   function! s:_align_lua(matrix) abort
+    call s:LuaString.expose()
     lua << EOF
 do
-  local ustring = require 'ustring'
+  local M = vital_vim_lua_string
   local matrix = vim.eval('a:matrix')
   local longests = {}
   local length = 0
   -- Find longest lengths of each column
   for r = 0, #matrix-1 do
     for c = 0, #matrix[r]-1 do
-      length = ustring.width(matrix[r][c])
+      length = M.strwidth(matrix[r][c])
       if (longests[c] == nil or longests[c] < length) then
         longests[c] = length
       end
@@ -69,7 +57,7 @@ do
   -- Add padding to each columns
   for r = 0, #matrix-1 do
     for c = 0, #matrix[r]-1 do
-      padding = longests[c] - ustring.width(matrix[r][c])
+      padding = longests[c] - M.strwidth(matrix[r][c])
       if padding > 0 then
         matrix[r][c] = matrix[r][c] .. string.rep(' ', padding)
       end

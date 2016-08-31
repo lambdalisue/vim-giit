@@ -85,7 +85,7 @@ function! s:on_add(candidates, options) abort
         \]
   let args += map(
         \ copy(a:candidates),
-        \ 'giit#normalize#abspath(git, v:val.path)',
+        \ 'giit#util#normalize#abspath(git, v:val.path)',
         \)
   let args = filter(args, '!empty(v:val)')
   let result = git.execute(args)
@@ -110,7 +110,7 @@ function! s:on_rm(candidates, options) abort
         \]
   let args += map(
         \ copy(a:candidates),
-        \ 'giit#normalize#abspath(git, v:val.path)',
+        \ 'giit#util#normalize#abspath(git, v:val.path)',
         \)
   let args = filter(args, '!empty(v:val)')
   let result = git.execute(args)
@@ -129,7 +129,7 @@ function! s:on_reset(candidates, options) abort
         \]
   let args += map(
         \ copy(a:candidates),
-        \ 'giit#normalize#relpath(git, v:val.path)',
+        \ 'giit#util#normalize#relpath(git, v:val.path)',
         \)
   let args = filter(args, '!empty(v:val)')
   let result = git.execute(args)

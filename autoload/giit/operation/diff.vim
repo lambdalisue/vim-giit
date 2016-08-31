@@ -36,12 +36,12 @@ function! giit#operation#diff#correct(git, options) abort
   let commit = get(a:options, 'commit', '')
   let commit = empty(commit)
         \ ? commit
-        \ : giit#normalize#commit_for_diff(a:git, commit)
+        \ : giit#util#normalize#commit_for_diff(a:git, commit)
 
   let filename = get(a:options, 'filename', '')
   let filename = empty(filename)
         \ ? filename
-        \ : giit#normalize#relpath(a:git, filename)
+        \ : giit#util#normalize#relpath(a:git, filename)
 
   let object = empty(filename)
         \ ? commit
@@ -71,8 +71,8 @@ function! giit#operation#diff#execute(git, args) abort
       call a:args.set('--reverse', 1)
     endif
   endif
-  call a:args.p.apply(0, function('giit#normalize#commit_for_diff', [a:git]))
-  call a:args.p.apply(1, function('giit#normalize#relpath', [a:git]))
+  call a:args.p.apply(0, function('giit#util#normalize#commit_for_diff', [a:git]))
+  call a:args.p.apply(1, function('giit#util#normalize#relpath', [a:git]))
   call a:args.set('--no-color', 1)
   return a:git.execute(a:args.raw, {
         \ 'encode_output': 0,
@@ -135,8 +135,8 @@ function! s:build_args(git, args) abort
       call args.set('--reverse', 1)
     endif
   endif
-  call args.apply(0, function('giit#normalize#commit_for_diff', [a:git]))
-  call args.apply(1, function('giit#normalize#relpath', [a:git]))
+  call args.apply(0, function('giit#util#normalize#commit_for_diff', [a:git]))
+  call args.apply(1, function('giit#util#normalize#relpath', [a:git]))
   call args.set('--no-color', 1)
   return args
 endfunction
@@ -150,7 +150,7 @@ function! s:open2(git, options) abort
         \ 'selection': [],
         \}, a:options)
   let filename = empty(options.filename)
-        \ ? giit#normalize#relpath(a:git, giit#expand('%'))
+        \ ? giit#util#normalize#relpath(a:git, giit#expand('%'))
         \ : options.filename
   let [lhs, rhs] = giit#operation#diff#split_commit(a:git, a:options)
   let vertical = matchstr(&diffopt, 'vertical')

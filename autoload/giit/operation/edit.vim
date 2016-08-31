@@ -5,7 +5,7 @@ let s:Argument = vital#giit#import('Argument')
 function! giit#operation#edit#command(cmdline, bang, range) abort
   let git = giit#core#get()
   let args = s:Argument.new(a:cmdline)
-  let bufname = giit#normalize#abspath(git, args.pop_p(1, '%'))
+  let bufname = giit#util#normalize#abspath(git, args.pop_p(1, '%'))
   let opener = args.pop('-o|--opener', '')
   let window = args.pop('--window', '')
 
