@@ -29,6 +29,7 @@ function! s:new(...) abort
   endif
   let args = copy(s:args)
   let args.raw = init
+  lockvar 1 args
   return args
 endfunction
 
@@ -78,6 +79,10 @@ endfunction
 
 let s:args = {}
 
+function! s:args.clone() abort
+  return s:new(copy(self.raw))
+endfunction
+
 function! s:args.list() abort
   return filter(copy(self.raw), 'v:val =~# ''^--\?\w\+''')
 endfunction
@@ -91,6 +96,11 @@ function! s:args.search(query, ...) abort
     endif
   endfor
   return -1
+endfunction
+
+function! s:args.has(query, ...) abort
+  let index = self.search(a:query, get(a:000, 1, 0))
+  return index != -1
 endfunction
 
 function! s:args.get(query, ...) abort
@@ -182,6 +192,11 @@ function! s:args.search_p(nth, ...) abort
     endif
   endfor
   return -1
+endfunction
+
+function! s:args.has_p(nth, ...) abort
+  let index = self.search_p(a:nth, get(a:000, 1, 0))
+  return index != -1
 endfunction
 
 function! s:args.get_p(nth, ...) abort

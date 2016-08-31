@@ -160,6 +160,10 @@ args.search({query}[, {start})
 	echo args.search('-b|--bar')
 	" -> 1
 <
+			*Vital.Argument-args.has()*
+args.has({query})
+	Returns 1 if a term found for specified {query}. Otherwise 0.
+
 			*Vital.Argument-args.get()*
 args.get({query}[, {default}])
 	Returns a value of a term found for the specified {query}.
@@ -239,6 +243,10 @@ args.search_p({nth}[, {start}])
 	echo args.search_p(1)
 	" -> 3
 <
+			*Vital.Argument-args.has_p()*
+args.has_p({nth})
+	Returns 1 if a {nth} positional term is found. Otherwise 0.
+
 			*Vital.Argument-args.get_p()*
 args.get_p({nth}[, {default}])
 	Returns a value of a positional {nth} term.

@@ -10,7 +10,13 @@ let g:loaded_giit = 1
 "  finish
 "endif
 
-command! -nargs=* -range -bang
+command! -nargs=* -bang -range
       \ -complete=customlist,giit#operation#complete
       \ Giit
-      \ call giit#operation#command(<q-bang>, [<line1>, <line2>], <q-args>)
+      \ call giit#operation#command(<q-args>, <q-bang>, [<line1>, <line2>])
+
+
+augroup giit-internal
+  autocmd! *
+  autocmd BufReadCmd giit://* call giit#component#autocmd('BufReadCmd')
+augroup END

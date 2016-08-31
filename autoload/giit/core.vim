@@ -48,6 +48,25 @@ function! s:new_refinfo(expr) abort
   " Use refname directly
   if bufname =~# '^giit:\%(//\)\?\zs[^:\\/]\+'
     let refname = matchstr(bufname, '^giit:\%(//\)\?\zs[^:\\/]\+')
+    if !has_key(s:refs, refname)
+      " Use a current working directory
+      let cwd = getcwd()
+      let git = s:Git.get(cwd)
+      let git = empty(git) && cwd !=# resolve(cwd)
+            \ ? s:Git.get(resolve(cwd))
+            \ : git
+      " Build refname from git instance and cache
+      if !empty(git)
+        let _refname = s:get_available_refname(
+              \ fnamemodify(git.worktree, ':t'),
+              \ git,
+              \)
+        call s:GitCore.bind(git)
+        call s:GitUtil.bind(git)
+        call s:GitProcess.bind(git)
+        let s:refs[_refname] = git
+      endif
+    endif
     return {
           \ 'refname': refname,
           \ 'buftype': buftype,

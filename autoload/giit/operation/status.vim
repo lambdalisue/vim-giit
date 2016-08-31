@@ -1,7 +1,5 @@
 let s:Path = vital#giit#import('System.Filepath')
 let s:Argument = vital#giit#import('Argument')
-let s:ArgumentParser = vital#giit#import('ArgumentParser')
-let s:DictOption = vital#giit#import('Data.Dict.Option')
 
 
 function! giit#operation#status#execute(git, args) abort
@@ -15,14 +13,11 @@ endfunction
 
 function! giit#operation#status#command(bang, range, cmdline) abort
   let git = giit#core#get_or_fail()
-  let args = s:Argument.parse(a:cmdline)
-  let args.options = {}
-  let args.options.bang = a:bang ==# '!'
-  let args.options.range = a:range
-  let args.options.opener = args.pop('-o|--opener', '')
-  let args.options.window = args.pop('-w|--window', '')
-  let args.options.selection = args.pop('-s|--selection', '')
-  call giit#component#status#open(git, args)
+  let args = s:Argument.new(a:cmdline)
+  let options = {}
+  let options.opener = args.pop('-o|--opener', '')
+  let options.window = args.pop('-w|--window', '')
+  call giit#component#status#open(git, args, options)
 endfunction
 
 function! giit#operation#status#complete(arglead, cmdline, cursorpos) abort

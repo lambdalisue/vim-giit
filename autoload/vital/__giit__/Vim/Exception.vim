@@ -2,11 +2,12 @@ let s:handlers = []
 
 function! s:_vital_loaded(V) abort
   let s:Prompt = a:V.import('Vim.Prompt')
+  let s:Guard = a:V.import('Vim.Guard')
   call s:register(s:get_default_handler())
 endfunction
 
 function! s:_vital_depends() abort
-  return ['Vim.Prompt']
+  return ['Vim.Prompt', 'Vim.Guard']
 endfunction
 
 function! s:_throw(category, msg) abort
@@ -42,7 +43,7 @@ endfunction
 
 function! s:handle(...) abort
   let l:exception = get(a:000, 0, v:exception)
-  for Handler in s:handlers
+  for Handler in reverse(copy(s:handlers))
     if call(Handler, [l:exception])
       return
     endif
@@ -51,6 +52,7 @@ function! s:handle(...) abort
 endfunction
 
 function! s:call(funcref, args, ...) abort
+  let guard = s:Guard.store([[s:handlers]])
   let instance = get(a:000, 0, 0)
   try
     if type(instance) == type({})
@@ -60,6 +62,8 @@ function! s:call(funcref, args, ...) abort
     endif
   catch /^vital: Vim\.Exception: /
     call s:handle()
+  finally
+    call guard.restore()
   endtry
 endfunction
 

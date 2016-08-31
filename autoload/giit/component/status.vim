@@ -5,26 +5,24 @@ let s:Action = vital#giit#import('Action')
 let s:Selector = vital#giit#import('Selector')
 
 
-function! giit#component#status#open(git, options) abort
-  let options = giit#operation#status#correct(a:git, a:options)
-  let window = get(a:options, 'window', 'candidate_window')
-  let opener = get(a:options, 'opener', 'botright 15split')
-  let selection = get(a:options, 'selection', [])
+function! giit#component#status#open(git, args, ...) abort
+  let options = giit#util#assign(get(a:000, 0), {
+        \ 'window': 'candidate_window',
+        \ 'opener': 'botright 15split',
+        \})
 
-  call s:BufferAnchor.focus_if_available(opener)
+  call s:BufferAnchor.focus_if_available(options.opener)
   let bufname = giit#util#buffer#bufname(a:git, 'status')
   let ret = giit#util#buffer#open(bufname, {
-        \ 'window': window,
-        \ 'opener': opener,
-        \ 'selection': selection,
+        \ 'window': options.window,
+        \ 'opener': options.opener,
         \})
   call s:initialize_buffer({})
 
   " Check if redraw is required or not
-  let is_redraw_required = giit#meta#modified('options', options)
+  let is_redraw_required = giit#meta#modified('args', a:args)
 
-  " Assign options
-  call giit#meta#set('options', options)
+  call giit#meta#set('args', a:args)
 
   " Redraw the buffer when necessary
   if is_redraw_required
@@ -40,7 +38,7 @@ function! s:on_BufReadCmd() abort
   let git = giit#core#get_or_fail()
   let result = giit#operation#status#execute(
         \ git,
-        \ giit#meta#require('options')
+        \ giit#meta#require('args')
         \)
   if result.status
     call giit#operation#inform(result)

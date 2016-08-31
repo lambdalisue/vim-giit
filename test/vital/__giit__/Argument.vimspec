@@ -127,6 +127,14 @@ Describe Argument
               \])
       End
 
+      Describe .clone()
+        It returns a new cloned instance
+          Assert Equals(args.clone(), args)
+          Assert NotSame(args.clone(), args)
+          Assert NotSame(args.clone(), args.clone())
+        End
+      End
+
       Describe .list()
         It returns a term list for optional arguments
           Assert Equals(args.list(), [
@@ -157,6 +165,22 @@ Describe Argument
 
         It returns -1 if no term is found
           Assert Equals(args.search('-n|--not-found'), -1)
+        End
+      End
+
+      Describe .has()
+        It returns 1 if a term for {query} exist
+          Assert Equals(args.has('-1'), 1)
+          Assert Equals(args.has('--optional1'), 1)
+          Assert Equals(args.has('-1|--optional1'), 1)
+          Assert Equals(args.has('-2|--optional2'), 1)
+          Assert Equals(args.has('-3|--optional3'), 1)
+        End
+
+        It returns 0 if a term for {query} does not exist
+          Assert Equals(args.has('-n'), 0)
+          Assert Equals(args.has('--not-found'), 0)
+          Assert Equals(args.has('-n|--not-found'), 0)
         End
       End
 
@@ -353,6 +377,17 @@ Describe Argument
         End
       End
 
+      Describe .has_p()
+        It returns 1 if a {nth} positional term exist
+          Assert Equals(args.has_p(0), 1)
+          Assert Equals(args.has_p(1), 1)
+          Assert Equals(args.has_p(2), 1)
+        End
+
+        It returns 0 if a {nth} positional term does not exist
+          Assert Equals(args.has_p(3), 0)
+        End
+      End
       Describe .get_p()
         It returns a value of a positional {nth} term
           Assert Equals(args.get_p(0), 'positional1:')
