@@ -1,16 +1,9 @@
 let s:Buffer = vital#giit#import('Vim.Buffer')
-let s:BufferAnchor = vital#giit#import('Vim.Buffer.Anchor')
 let s:Argument = vital#giit#import('Argument')
 let s:Exception = vital#giit#import('Vim.Exception')
 
 
 function! giit#component#show#autocmd(event) abort
-  if !exists('*s:on_' . a:event)
-    throw s:Exception.critical(printf(
-          \ 'giit: No autocmd "%s" is found on "show" component',
-          \ a:event,
-          \))
-  endif
   let bufname = expand('<afile>')
   let object = matchstr(bufname, '^giit://.*:show\%(:patch\)\?/\zs.*$')
   let patch  = bufname =~# '^giit://.*:show:patch/'

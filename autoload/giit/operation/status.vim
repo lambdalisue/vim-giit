@@ -1,23 +1,36 @@
 let s:Path = vital#giit#import('System.Filepath')
+let s:Guard = vital#giit#import('Vim.Guard')
+let s:Anchor = vital#giit#import('Vim.Buffer.Anchor')
 let s:Argument = vital#giit#import('Argument')
 
 
 function! giit#operation#status#execute(git, args) abort
-  call a:args.set('-v|--verbose', 1)
-  call a:args.set('--porcelain', 1)
-  call a:args.set('--no-column', 1)
   return a:git.execute(a:args.raw, {
         \ 'encode_output': 0,
         \})
 endfunction
 
-function! giit#operation#status#command(bang, range, cmdline) abort
+function! giit#operation#status#command(cmdline, bang, range) abort
   let git = giit#core#get_or_fail()
   let args = s:Argument.new(a:cmdline)
-  let options = {}
-  let options.opener = args.pop('-o|--opener', '')
-  let options.window = args.pop('-w|--window', '')
-  call giit#component#status#open(git, args, options)
+  let bufname = giit#util#buffer#bufname(git, 'status', 1)
+  let opener = args.pop('-o|--opener', 'botright 15split')
+  let window = args.pop('--window', 'selector')
+
+  call s:Anchor.focus_if_available(opener)
+  let guard = s:Guard.store(['&eventignore'])
+  try
+    set eventignore+=BufReadCmd
+    let ret = giit#util#buffer#open(bufname, {
+          \ 'window': window,
+          \ 'opener': opener,
+          \})
+  finally
+    call guard.restore()
+  endtry
+  call giit#meta#set('args', args)
+  call giit#util#doautocmd('BufReadCmd')
+  call giit#util#buffer#finalize(ret)
 endfunction
 
 function! giit#operation#status#complete(arglead, cmdline, cursorpos) abort

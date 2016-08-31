@@ -1,27 +1,33 @@
+let s:Anchor = vital#giit#import('Vim.Buffer.Anchor')
 let s:Argument = vital#giit#import('Argument')
-let s:BufferAnchor = vital#giit#import('Vim.Buffer.Anchor')
 
 
-function! giit#operation#edit#command(bang, range, cmdline) abort
-  let git = giit#core#get_or_fail()
+function! giit#operation#edit#command(cmdline, bang, range) abort
+  let git = giit#core#get()
   let args = s:Argument.new(a:cmdline)
-
-  let filename = giit#expand(args.pop_p(0, '%'))
-  let opener = args.pop('-o|--opener', 'edit')
+  let bufname = giit#util#normalize#abspath(git, args.pop_p(1, '%'))
+  let opener = args.pop('-o|--opener', '')
   let window = args.pop('--window', '')
 
-  if args.has('--selection')
-    let selection = giit#selection#parse(args.pop('--selection'))
-  elseif filename ==# giit#expand('%')
-    let selection = a:range
-  else
-    let selection = []
-  endif
-
-  call s:BufferAnchor.focus_if_available(opener)
-  let ret = giit#util#buffer#open(filename, {
+  call s:Anchor.focus_if_available(opener)
+  let ret = giit#util#buffer#open(bufname, {
         \ 'window': window,
         \ 'opener': opener,
-        \ 'selection': selection,
         \})
+  call giit#util#buffer#finalize(ret)
+endfunction
+
+function! giit#operation#edit#complete(arglead, cmdline, cursorpos) abort
+  if a:arglead =~# '^\%(-o\|--opener=\)'
+    return giit#complete#opener(a:arglead, a:cmdline, a:cursorpos)
+  elseif a:arglead =~# '^--\?'
+    return giit#complete#filter(a:arglead, [
+          \ '-o', '--opener=',
+          \ '--window=',
+          \ '--selection=',
+          \ '-p', '--patch',
+          \])
+  else
+    return giit#complete#filename#any(a:arglead, a:cmdline, a:cursorpos)
+  endif
 endfunction

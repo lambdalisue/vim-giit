@@ -1,6 +1,6 @@
 let s:Guard = vital#giit#import('Vim.Guard')
+let s:Anchor = vital#giit#import('Vim.Buffer.Anchor')
 let s:Argument = vital#giit#import('Argument')
-let s:BufferAnchor = vital#giit#import('Vim.Buffer.Anchor')
 
 
 function! giit#operation#show#execute(git, args) abort
@@ -13,18 +13,17 @@ endfunction
 function! giit#operation#show#command(cmdline, bang, range) abort
   let git = giit#core#get_or_fail()
   let args = s:Argument.new(a:cmdline)
-  let object = args.get_p(1)
+  let object = args.apply_p(1, function('s:normalize_object', [git]))
   let bufname = giit#util#buffer#bufname(git, 'show')
   let bufname = printf('%s%s/%s',
         \ bufname,
         \ empty(args.pop('-p|--patch')) ? '' : ':patch',
         \ object,
         \)
-
   let opener = args.pop('-o|--opener', '')
   let window = args.pop('--window', '')
 
-  call s:BufferAnchor.focus_if_available(opener)
+  call s:Anchor.focus_if_available(opener)
   let guard = s:Guard.store(['&eventignore'])
   try
     set eventignore+=BufReadCmd
@@ -58,4 +57,12 @@ function! giit#operation#show#complete(arglead, cmdline, cursorpos) abort
   else
     return giit#complete#commit#any(a:arglead, a:cmdline, a:cursorpos)
   endif
+endfunction
+
+
+function! s:normalize_object(git, key, value) abort
+  let m = matchlist(a:value, '^\([^:]*\)\%(:\(.*\)\)\?$')
+  let commit = giit#util#normalize#commit(a:git, m[1])
+  let filename = giit#util#normalize#relpath(a:git, m[2])
+  return empty(filename) ? commit : commit . ':' . filename
 endfunction
