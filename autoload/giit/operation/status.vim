@@ -2,20 +2,12 @@ let s:Path = vital#giit#import('System.Filepath')
 let s:Guard = vital#giit#import('Vim.Guard')
 let s:Opener = vital#giit#import('Vim.Buffer.Opener')
 let s:Anchor = vital#giit#import('Vim.Buffer.Anchor')
-let s:Argument = vital#giit#import('Argument')
 
 
-function! giit#operation#status#execute(git, args) abort
-  return a:git.execute(a:args.raw, {
-        \ 'encode_output': 0,
-        \})
-endfunction
-
-function! giit#operation#status#command(cmdline, bang, range) abort
+function! giit#operation#status#command(args) abort
   let git = giit#core#get_or_fail()
-  let args = s:Argument.new(a:cmdline)
+  let opener = a:args.pop('-o|--opener', 'botright 15split')
   let bufname = giit#component#bufname(git, 'status', 1)
-  let opener = args.pop('-o|--opener', 'botright 15split')
 
   call s:Anchor.focus_if_available(opener)
   let guard = s:Guard.store(['&eventignore'])
@@ -28,13 +20,22 @@ function! giit#operation#status#command(cmdline, bang, range) abort
   finally
     call guard.restore()
   endtry
-  call giit#meta#set('args', args)
-  call giit#util#doautocmd('BufReadCmd')
+  let is_expired = !context.bufloaded || giit#meta#modified('args', a:args)
+  call giit#meta#set('args', a:args)
+  if is_expired
+    edit!
+  endif
   call context.end()
 endfunction
 
 function! giit#operation#status#complete(arglead, cmdline, cursorpos) abort
   return []
+endfunction
+
+function! giit#operation#status#execute(git, args) abort
+  return a:git.execute(['status'] + a:args.raw, {
+        \ 'encode_output': 0,
+        \})
 endfunction
 
 

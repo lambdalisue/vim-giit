@@ -44,7 +44,6 @@ function! s:new(...) abort
   endif
   let args = copy(s:args)
   let args.raw = init
-  lockvar 1 args
   return args
 endfunction
 

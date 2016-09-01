@@ -34,25 +34,29 @@ endfunction
 " Private --------------------------------------------------------------------
 function! s:command(cmdline, bang, range) abort
   let args = s:Argument.new(a:cmdline)
-  let name = args.get_p(0)
-  if !empty(name) && a:bang !=# '!'
+  let args.options = {}
+  let args.options.name = args.pop_p(0)
+  let args.options.range = a:range
+  if a:bang !=# '!' && !empty(args.options.name)
+    let fname = giit#util#fname('operation', args.options.name, 'command')
     try
-      let fname = printf(
-            \ 'giit#operation#%s#command',
-            \ substitute(name, '-', '_', 'g')
-            \)
-      return call(fname, [a:cmdline, a:bang, a:range])
+      return call(fname, [args])
     catch /^Vim\%((\a\+)\)\=:E117/
       " fail silently
     endtry
   endif
 
   let git = giit#core#get()
-  let args.raw = map(args.raw, 'v:val ==# ''%'' ? giit#expand(v:val) : v:val')
-  let result = s:GitProcess.shell(git, args.raw, {
-        \ 'stdout': 1,
-        \})
-  if !args.get('-q|--quiet')
+  let args = s:Argument.new(a:cmdline)
+  let quiet = args.pop('-q|--quiet')
+  let interactive = args.pop('--interactive')
+  call args.map_p('v:val ==# ''%'' ? giit#expand(''%'') : v:val')
+  if interactive
+    let result = s:GitProcess.shell(git, args.raw, { 'stdout': 1 })
+  else
+    let result = s:GitProcess.execute(git, args.raw)
+  endif
+  if !quiet
     call giit#operation#inform(result)
   endif
   return result
@@ -60,15 +64,13 @@ endfunction
 
 function! s:complete(arglead, cmdline, cursorpos) abort
   call s:Exception.register(function('s:complete_exception_handler'))
+
   let cmdline = matchstr(a:cmdline, '^\w\+ \zs.*\ze .*$')
   let args = s:Argument.new(cmdline)
-  let name = args.get_p(0)
-  if !empty(name) && a:cmdline !~# '^\w\+!'
+  let name = args.pop_p(0)
+  if a:cmdline !~# '^\w\+!' && !empty(name)
+    let fname = giit#util#fname('operation', name, 'complete')
     try
-      let fname = printf(
-            \ 'giit#operation#%s#complete',
-            \ substitute(name, '-', '_', 'g')
-            \)
       return call(fname, [a:arglead, a:cmdline, a:cursorpos])
     catch /^Vim\%((\a\+)\)\=:E117/
       " fail silently

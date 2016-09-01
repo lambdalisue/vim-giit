@@ -16,8 +16,7 @@ function! s:on_BufReadCmd(object, patch) abort
   call s:Exception.register(function('s:exception_handler'))
   let git = giit#core#get_or_fail()
   let args = giit#meta#get('args', s:Argument.new())
-  call args.set_p(0, 'show')
-  call args.set_p(1, a:object)
+  call args.set_p(0, a:object)
   let result = giit#operation#show#execute(git, args)
   if result.status
     call giit#operation#throw(result)

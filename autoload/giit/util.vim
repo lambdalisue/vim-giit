@@ -51,6 +51,10 @@ function! giit#util#slug() abort
   return 'matchstr(expand(''<sfile>''), ''\zs[^. ]\+$'')'
 endfunction
 
+function! giit#util#fname(...) abort
+  let trees = map(copy(a:000), 'substitute(v:val, ''-'', ''_'', ''g'')')
+  return 'giit#' . join(trees, '#')
+endfunction
 
 function! s:syncbind() abort
   augroup giit_internal_util_syncbind

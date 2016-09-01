@@ -4,18 +4,16 @@ let s:Anchor = vital#giit#import('Vim.Buffer.Anchor')
 let s:Argument = vital#giit#import('Argument')
 
 
-function! giit#operation#show#command(cmdline, bang, range) abort
+function! giit#operation#show#command(args) abort
   let git = giit#core#get_or_fail()
-  let args = s:Argument.new(a:cmdline)
-  let object = args.apply_p(1, function('s:expand_object', [git]))
+  let opener = a:args.pop('-o|--opener', '')
+  let object = a:args.apply_p(0, function('s:expand_object', [git]))
   let bufname = giit#component#bufname(git, 'show')
   let bufname = printf('%s%s/%s',
         \ bufname,
-        \ empty(args.pop('-p|--patch')) ? '' : ':patch',
+        \ empty(a:args.pop('-p|--patch')) ? '' : ':patch',
         \ object,
         \)
-  let opener = args.pop('-o|--opener', '')
-
   call s:Anchor.focus_if_available(opener)
   let guard = s:Guard.store(['&eventignore'])
   try
@@ -26,7 +24,7 @@ function! giit#operation#show#command(cmdline, bang, range) abort
   finally
     call guard.restore()
   endtry
-  call giit#meta#set('args', args)
+  call giit#meta#set('args', a:args)
   call giit#util#doautocmd('BufReadCmd')
   call context.end()
 endfunction
@@ -53,8 +51,8 @@ endfunction
 
 function! giit#operation#show#execute(git, args) abort
   let args = a:args.clone()
-  call args.apply_p(1, function('s:normalize_object', [a:git]))
-  call filter(args.raw, '!empty(v:val)')
+  call args.apply_p(0, function('s:normalize_object', [a:git]))
+  call filter(['show'] + args.raw, '!empty(v:val)')
   return a:git.execute(args.raw, {
         \ 'encode_output': 0,
         \})
