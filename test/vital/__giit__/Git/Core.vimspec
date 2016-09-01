@@ -32,6 +32,7 @@ Describe Git.Core
 
       Assert KeyExists(git, 'core')
       Assert KeyExists(git.core, 'expand')
+      Assert KeyExists(git.core, 'writefile')
       Assert KeyExists(git.core, 'readfile')
       Assert KeyExists(git.core, 'readline')
       Assert KeyExists(git.core, 'filereadable')
@@ -41,6 +42,7 @@ Describe Git.Core
       Assert KeyExists(git.core, 'set_cached_content')
       Assert True(islocked('git.core'))
       Assert True(islocked('git.core.expand'))
+      Assert True(islocked('git.core.writefile'))
       Assert True(islocked('git.core.readfile'))
       Assert True(islocked('git.core.readline'))
       Assert True(islocked('git.core.filereadable'))
@@ -57,6 +59,7 @@ Describe Git.Core
 
       Assert KeyExists(git, 'core')
       Assert KeyNotExists(git.core, 'expand')
+      Assert KeyNotExists(git.core, 'writefile')
       Assert KeyNotExists(git.core, 'readfile')
       Assert KeyNotExists(git.core, 'readline')
       Assert KeyNotExists(git.core, 'filereadable')
@@ -107,6 +110,27 @@ Describe Git.Core
         Assert Equals(GitCore.expand(git, 'description'), abspath)
       End
     endif
+  End
+
+  Describe .writefile()
+    It throws an exception when {relpath} is already an absolute path
+      let git = Git.get(f_inside1)
+      let abspath = Path.join(inside, '.git', 'config')
+      Throws /It requires a relative path/ GitCore.writefile(git, [], abspath)
+    End
+
+    It writes a {content} to {relpath} found in .git and return 1
+      let git = Git.get(f_inside1)
+      let content_saved = readfile(Path.join(inside, '.git', 'config'))
+      Assert Equals(GitCore.writefile(git, ['foobar'], 'config'), 1)
+      Assert Equals(GitCore.readfile(git, 'config'), ['foobar'])
+      Assert Equals(GitCore.writefile(git, content_saved, 'config'), 1)
+    End
+
+    It returns 0 if {relpath} is not writable
+      let git = Git.get(f_inside1)
+      Assert Equals(GitCore.writefile(git, [], 'DOES/NOT/EXIST'), 0)
+    End
   End
 
   Describe .readfile()

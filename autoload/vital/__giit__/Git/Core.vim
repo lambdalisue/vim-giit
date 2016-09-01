@@ -16,6 +16,7 @@ function! s:bind(git) abort
   endif
   let methods = [
         \ 'expand',
+        \ 'writefile',
         \ 'readfile',
         \ 'readline',
         \ 'filereadable',
@@ -49,6 +50,16 @@ function! s:expand(git, relpath) abort
   return filereadable(path1) || isdirectory(path1)
         \ ? path1
         \ : filereadable(path2) || isdirectory(path2) ? path2 : path1
+endfunction
+
+function! s:writefile(git, content, relpath, ...) abort
+  let flags = get(a:000, 0, '')
+  let path = s:expand(a:git, a:relpath)
+  if filewritable(path)
+    call writefile(a:content, path, flags)
+    return 1
+  endif
+  return 0
 endfunction
 
 function! s:readfile(git, relpath) abort
