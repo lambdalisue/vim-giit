@@ -31,14 +31,9 @@ function! s:on_BufReadCmd() abort
   call giit#meta#set('args', args)
   call s:init()
 
-  let chunker = s:Chunker.new(1000, result.content)
-  let chunker.git = git
-  let chunker.selector = s:Selector.get()
-  call chunker.selector.assign_candidates([])
-  if exists('s:timer_id')
-    call timer_stop(s:timer_id)
-  endif
-  let s:timer_id = timer_start(0, function('s:extend_candidates', [chunker]))
+  let candidates = giit#operation#status#parse(git, result.content)
+  let selector = s:Selector.get()
+  call selector.assign_candidates(candidates)
 endfunction
 
 
@@ -85,14 +80,4 @@ function! s:exception_handler(exception) abort
   silent 0file!
   call giit#meta#clear()
   return 0
-endfunction
-
-function! s:extend_candidates(chunker, timer_id) abort
-  let chunk = a:chunker.next()
-  if empty(chunk)
-    return
-  endif
-  let candidates = giit#operation#status#parse(a:chunker.git, chunk)
-  call a:chunker.selector.extend_candidates(candidates)
-  let s:timer_id = timer_start(10, function('s:extend_candidates', [a:chunker]))
 endfunction
