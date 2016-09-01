@@ -15,15 +15,6 @@ function! giit#component#show#autocmd(event) abort
   return call('s:on_' . a:event, [object, patch])
 endfunction
 
-function! giit#component#diff#open(git, options) abort
-  let options = giit#operation#diff#correct(a:git, a:options)
-
-  if get(options, 'split')
-    call s:open2(a:git, options)
-  else
-    call s:open1(a:git, options)
-  endif
-endfunction
 
 
 " autocmd --------------------------------------------------------------------
@@ -31,7 +22,6 @@ function! s:on_BufReadCmd(object, patch) abort
   call s:Exception.register(function('s:exception_handler'))
   let git = giit#core#get_or_fail()
   let args = giit#meta#get('args', s:Argument.new())
-  call args.set_p(0, 'diff')
   let result = giit#operation#diff#execute(git, args)
   if result.status
     call giit#operation#throw(result)

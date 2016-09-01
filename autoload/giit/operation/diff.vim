@@ -2,6 +2,11 @@ let s:GitTerm = vital#giit#import('Git.Term')
 let s:Argument = vital#giit#import('Argument')
 let s:Exception = vital#giit#import('Vim.Exception')
 
+let s:Guard = vital#giit#import('Vim.Guard')
+let s:Opener = vital#giit#import('Vim.Buffer.Opener')
+let s:Anchor = vital#giit#import('Vim.Buffer.Anchor')
+let s:Argument = vital#giit#import('Argument')
+
 let s:WORKTREE = '@@'
 
 function! giit#operation#diff#correct(git, options) abort
@@ -54,6 +59,16 @@ function! giit#operation#diff#correct(git, options) abort
   return a:options
 endfunction
 
+function! giit#operation#diff#command(bang, range, args) abort
+  let git = giit#core#get_or_fail()
+  let args = s:build_args(git, a:args)
+  call giit#component#diff#open(git, args)
+endfunction
+
+function! giit#operation#diff#complete(arglead, cmdline, cursorpos) abort
+  return []
+endfunction
+
 function! giit#operation#diff#execute(git, args) abort
   let commit   = a:args.p.get(0, '')
   let filename = a:args.p.get(1, '')
@@ -77,16 +92,6 @@ function! giit#operation#diff#execute(git, args) abort
   return a:git.execute(a:args.raw, {
         \ 'encode_output': 0,
         \})
-endfunction
-
-function! giit#operation#diff#command(bang, range, args) abort
-  let git = giit#core#get_or_fail()
-  let args = s:build_args(git, a:args)
-  call giit#component#diff#open(git, args)
-endfunction
-
-function! giit#operation#diff#complete(arglead, cmdline, cursorpos) abort
-  return []
 endfunction
 
 function! giit#operation#diff#split_commit(git, options) abort
