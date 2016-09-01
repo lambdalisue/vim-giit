@@ -1,13 +1,13 @@
 giit
 bff0d8c58c1fb6ab9e4a9fc0c672368502f10d88
 
-System.File
-Data.Dict
-Text.INI
-Vim.Prompt
-System.Process.Mock
-Vim.BufferManager
-Vim.Buffer.Anchor
 Argument
+System.File
+System.Process.Mock
+Text.INI
+Data.Dict
 Data.List.Chunker
+Vim.Prompt
 Vim.Lua.String
+Vim.Buffer.Opener
+Vim.Buffer.Anchor

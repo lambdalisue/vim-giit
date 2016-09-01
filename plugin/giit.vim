@@ -25,4 +25,5 @@ augroup giit-internal
     " NOTE: autocmd for 'xxxxx:*' is trittered for 'xxxxx://' in Windows
     autocmd BufReadCmd giit:*/* nested call giit#component#autocmd('BufReadCmd')
   endif
+  autocmd BufReadCmd COMMIT_EDITMSG nested call giit#component#commit#autocmd('BufReadCmd')
 augroup END

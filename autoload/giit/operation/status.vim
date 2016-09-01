@@ -1,5 +1,6 @@
 let s:Path = vital#giit#import('System.Filepath')
 let s:Guard = vital#giit#import('Vim.Guard')
+let s:Opener = vital#giit#import('Vim.Buffer.Opener')
 let s:Anchor = vital#giit#import('Vim.Buffer.Anchor')
 let s:Argument = vital#giit#import('Argument')
 
@@ -13,16 +14,15 @@ endfunction
 function! giit#operation#status#command(cmdline, bang, range) abort
   let git = giit#core#get_or_fail()
   let args = s:Argument.new(a:cmdline)
-  let bufname = giit#util#buffer#bufname(git, 'status', 1)
+  let bufname = giit#component#bufname(git, 'status', 1)
   let opener = args.pop('-o|--opener', 'botright 15split')
-  let window = args.pop('--window', 'selector')
 
   call s:Anchor.focus_if_available(opener)
   let guard = s:Guard.store(['&eventignore'])
   try
     set eventignore+=BufReadCmd
-    let ret = giit#util#buffer#open(bufname, {
-          \ 'window': window,
+    let context = s:Opener.open(bufname, {
+          \ 'group': 'selector',
           \ 'opener': opener,
           \})
   finally
@@ -30,7 +30,7 @@ function! giit#operation#status#command(cmdline, bang, range) abort
   endtry
   call giit#meta#set('args', args)
   call giit#util#doautocmd('BufReadCmd')
-  call giit#util#buffer#finalize(ret)
+  call context.end()
 endfunction
 
 function! giit#operation#status#complete(arglead, cmdline, cursorpos) abort

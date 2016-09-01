@@ -1,4 +1,5 @@
 let s:Guard = vital#giit#import('Vim.Guard')
+let s:Opener = vital#giit#import('Vim.Buffer.Opener')
 let s:Anchor = vital#giit#import('Vim.Buffer.Anchor')
 let s:Argument = vital#giit#import('Argument')
 
@@ -7,21 +8,19 @@ function! giit#operation#show#command(cmdline, bang, range) abort
   let git = giit#core#get_or_fail()
   let args = s:Argument.new(a:cmdline)
   let object = args.apply_p(1, function('s:expand_object', [git]))
-  let bufname = giit#util#buffer#bufname(git, 'show')
+  let bufname = giit#component#bufname(git, 'show')
   let bufname = printf('%s%s/%s',
         \ bufname,
         \ empty(args.pop('-p|--patch')) ? '' : ':patch',
         \ object,
         \)
   let opener = args.pop('-o|--opener', '')
-  let window = args.pop('--window', '')
 
   call s:Anchor.focus_if_available(opener)
   let guard = s:Guard.store(['&eventignore'])
   try
     set eventignore+=BufReadCmd
-    let ret = giit#util#buffer#open(bufname, {
-          \ 'window': window,
+    let context = s:Opener.open(bufname, {
           \ 'opener': opener,
           \})
   finally
@@ -29,7 +28,7 @@ function! giit#operation#show#command(cmdline, bang, range) abort
   endtry
   call giit#meta#set('args', args)
   call giit#util#doautocmd('BufReadCmd')
-  call giit#util#buffer#finalize(ret)
+  call context.end()
 endfunction
 
 function! giit#operation#show#complete(arglead, cmdline, cursorpos) abort
