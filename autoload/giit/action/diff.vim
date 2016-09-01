@@ -23,7 +23,6 @@ function! s:on_diff(candidates, options) abort
   let options = extend({
         \ 'commit': '',
         \ 'opener': '',
-        \ 'selection': [],
         \ 'split': 0,
         \}, a:options)
   let candidate = get(a:candidates, 0)
@@ -31,17 +30,13 @@ function! s:on_diff(candidates, options) abort
     return
   endif
   let opener = empty(options.opener) ? 'edit' : options.opener
-  let selection = get(candidate, 'selection', options.selection)
   let commit = get(candidate, 'commit', '')
   let cached = empty(commit) && candidate.sign =~# '^. $'
-  call s:BufferAnchor.focus_if_available(opener)
-  call giit#component#diff#open(git, {
-        \ 'window': '',
-        \ 'opener': opener,
-        \ 'selection': selection,
-        \ 'commit': commit,
-        \ 'filename': candidate.path,
-        \ 'cached': cached,
-        \ 'split': options.split,
-        \})
+  execute printf(
+        \ 'Giit diff %s --opener=%s %s %s',
+        \ cached ? '--cached' : '',
+        \ shellescape(opener),
+        \ empty(commit) ? '' : shellescape(commit),
+        \ shellescape(candidate.path),
+        \)
 endfunction

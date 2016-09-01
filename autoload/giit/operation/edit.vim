@@ -1,20 +1,17 @@
+let s:Opener = vital#giit#import('Vim.Buffer.Opener')
 let s:Anchor = vital#giit#import('Vim.Buffer.Anchor')
-let s:Argument = vital#giit#import('Argument')
 
 
-function! giit#operation#edit#command(cmdline, bang, range) abort
+function! giit#operation#edit#command(args) abort
   let git = giit#core#get()
-  let args = s:Argument.new(a:cmdline)
-  let bufname = giit#util#normalize#abspath(git, args.pop_p(1, '%'))
-  let opener = args.pop('-o|--opener', '')
-  let window = args.pop('--window', '')
+  let opener = a:args.pop('-o|--opener', '')
+  let bufname = giit#util#normalize#abspath(git, a:args.pop_p(0, '%'))
 
   call s:Anchor.focus_if_available(opener)
-  let ret = giit#util#buffer#open(bufname, {
-        \ 'window': window,
+  let context = s:Opener.open(bufname, {
         \ 'opener': opener,
         \})
-  call giit#util#buffer#finalize(ret)
+  call context.end()
 endfunction
 
 function! giit#operation#edit#complete(arglead, cmdline, cursorpos) abort

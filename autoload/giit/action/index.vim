@@ -90,7 +90,7 @@ function! s:on_add(candidates, options) abort
   let args = filter(args, '!empty(v:val)')
   let result = git.execute(args)
   if result.status
-    call giit#operation#inform(result)
+    call giit#operation#throw(result)
   endif
   call giit#trigger_modified()
 endfunction
@@ -115,7 +115,7 @@ function! s:on_rm(candidates, options) abort
   let args = filter(args, '!empty(v:val)')
   let result = git.execute(args)
   if result.status
-    call giit#operation#inform(result)
+    call giit#operation#throw(result)
   endif
   call giit#trigger_modified()
 endfunction
@@ -134,7 +134,7 @@ function! s:on_reset(candidates, options) abort
   let args = filter(args, '!empty(v:val)')
   let result = git.execute(args)
   if result.status
-    call giit#operation#inform(result)
+    call giit#operation#throw(result)
   endif
   call giit#trigger_modified()
 endfunction

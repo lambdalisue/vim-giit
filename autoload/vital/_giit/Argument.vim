@@ -98,14 +98,18 @@ function! s:args.clone() abort
 endfunction
 
 function! s:args.list() abort
-  return filter(copy(self.raw), 'v:val =~# ''^--\?\w\+''')
+  let tail = index(self.raw, '--')
+  let tail = tail == -1 ? -1 : tail - 1
+  return filter(self.raw[:tail], 'v:val =~# ''^--\?\w\+''')
 endfunction
 
 function! s:args.search(query, ...) abort
   let pattern = s:build_pattern(a:query)
   let indices = range(get(a:000, 0, 0), len(self.raw)-1)
   for index in indices
-    if self.raw[index] =~# pattern
+    if self.raw[index] ==# '--'
+      return -1
+    elseif self.raw[index] =~# pattern
       return index
     endif
   endfor
@@ -159,41 +163,60 @@ function! s:args.pop(query, ...) abort
   return value
 endfunction
 
-function! s:args.map(expr) abort
-  let indices = filter(
-        \ range(0, len(self.raw)-1),
-        \ 'self.raw[v:val] =~# ''^--\?\w\+'''
-        \)
-  let candidates = map(copy(indices), 's:parse_term(self.raw[v:val])')
-  call map(candidates, a:expr)
-  for i in range(len(candidates))
-    let index = indices[i]
-    let self.raw[index] = call('s:build_term', candidates[i])
-  endfor
-  return self
-endfunction
-
-function! s:args.apply(query, expr, ...) abort
+function! s:args.apply(query, fn, ...) abort
   let index = self.search(a:query, get(a:000, 1, 0))
   if index == -1
     return get(a:000, 0, 0)
   endif
-  let terms = [s:parse_term(self.raw[index])]
-  call map(terms, a:expr)
-  let self.raw[index] = call('s:build_term', terms[0])
+  let [key, value] = s:parse_term(self.raw[index])
+  let [key, value] = a:fn(key, value)
+  let self.raw[index] = s:build_term(key, value)
   let value = self.raw[index]
   let index = self.search(a:query, index+1)
   while index != -1
-    let terms = [s:parse_term(self.raw[index])]
-    call map(terms, a:expr)
-    let self.raw[index] = call('s:build_term', terms[0])
+    let [key, value] = s:parse_term(self.raw[index])
+    let [key, value] = a:fn(key, value)
+    let self.raw[index] = s:build_term(key, value)
     let index = self.search(a:query, index+1)
   endwhile
   return s:parse_term(value)[1]
 endfunction
 
+function! s:args.map(fn) abort
+  let tail = index(self.raw, '--')
+  let tail = tail == -1 ? len(self.raw)-1 : tail - 1
+  let indices = filter(
+        \ range(0, tail),
+        \ 'self.raw[v:val] =~# ''^--\?\w\+'''
+        \)
+  for index in indices
+    let [key, value] = s:parse_term(self.raw[index])
+    let [key, value] = a:fn(key, value)
+    let self.raw[index] = s:build_term(key, value)
+  endfor
+  return self
+endfunction
+
+function! s:args.filter(fn) abort
+  let tail = index(self.raw, '--')
+  let tail = tail == -1 ? len(self.raw)-1 : tail - 1
+  let indices = filter(
+        \ range(0, tail),
+        \ 'self.raw[v:val] =~# ''^--\?\w\+'''
+        \)
+  for index in reverse(indices)
+    let [key, value] = s:parse_term(self.raw[index])
+    if empty(a:fn(key, value))
+      call remove(self.raw, index)
+    endif
+  endfor
+  return self
+endfunction
+
 function! s:args.list_p() abort
-  return filter(copy(self.raw), 'v:val !~# ''^--\?\w\+''')
+  let tail = index(self.raw, '--')
+  let tail = tail == -1 ? -1 : tail - 1
+  return filter(self.raw[:tail], 'v:val !~# ''^--\?\w\+''')
 endfunction
 
 function! s:args.search_p(nth, ...) abort
@@ -201,7 +224,9 @@ function! s:args.search_p(nth, ...) abort
   let indices = range(get(a:000, 0, 0), len(self.raw)-1)
   for index in indices
     let counter += self.raw[index] !~# '^--\?\w\+'
-    if counter == a:nth
+    if self.raw[index] ==# '--'
+      return -1
+    elseif counter == a:nth
       return index
     endif
   endfor
@@ -247,27 +272,73 @@ function! s:args.pop_p(nth, ...) abort
   return value
 endfunction
 
-function! s:args.map_p(expr) abort
-  let indices = filter(
-        \ range(0, len(self.raw)-1),
-        \ 'self.raw[v:val] !~# ''^--\?\w\+'''
-        \)
-  let candidates = map(copy(indices), 'self.raw[v:val]')
-  call map(candidates, a:expr)
-  for i in range(len(candidates))
-    let index = indices[i]
-    let self.raw[index] = candidates[i]
-  endfor
-  return self
-endfunction
-
-function! s:args.apply_p(nth, expr, ...) abort
+function! s:args.apply_p(nth, fn, ...) abort
   let index = self.search_p(a:nth, get(a:000, 1, 0))
   if index == -1
     return get(a:000, 0, '')
   endif
-  let terms = [self.raw[index]]
-  call map(terms, a:expr)
-  let self.raw[index] = terms[0]
-  return terms[0]
+  let self.raw[index] = a:fn(self.raw[index])
+  return self.raw[index]
+endfunction
+
+function! s:args.map_p(fn) abort
+  let tail = index(self.raw, '--')
+  let tail = tail == -1 ? len(self.raw)-1 : tail - 1
+  let indices = filter(
+        \ range(0, tail),
+        \ 'self.raw[v:val] !~# ''^--\?\w\+'''
+        \)
+  for index in indices
+    let self.raw[index] = a:fn(self.raw[index])
+  endfor
+  return self
+endfunction
+
+function! s:args.filter_p(fn) abort
+  let tail = index(self.raw, '--')
+  let tail = tail == -1 ? len(self.raw)-1 : tail - 1
+  let indices = filter(
+        \ range(0, tail),
+        \ 'self.raw[v:val] !~# ''^--\?\w\+'''
+        \)
+  for index in reverse(indices)
+    if empty(a:fn(self.raw[index]))
+      call remove(self.raw, index)
+    endif
+  endfor
+  return self
+endfunction
+
+function! s:args.list_r() abort
+  let tail = index(self.raw, '--')
+  if tail == -1
+    return []
+  endif
+  return self.raw[tail+1:]
+endfunction
+
+function! s:args.map_r(fn) abort
+  let tail = index(self.raw, '--')
+  if tail == -1
+    return self
+  endif
+  let indices = range(tail+1, len(self.raw)-1)
+  for index in indices
+    let self.raw[index] = a:fn(self.raw[index])
+  endfor
+  return self
+endfunction
+
+function! s:args.filter_r(fn) abort
+  let tail = index(self.raw, '--')
+  if tail == -1
+    return self
+  endif
+  let indices = range(tail+1, len(self.raw)-1)
+  for index in reverse(indices)
+    if empty(a:fn(self.raw[index]))
+      call remove(self.raw, index)
+    endif
+  endfor
+  return self
 endfunction

@@ -42,7 +42,8 @@ function! s:command(cmdline, bang, range) abort
     try
       return call(fname, [args])
     catch /^Vim\%((\a\+)\)\=:E117/
-      " fail silently
+      call s:Prompt.debug(v:exception)
+      call s:Prompt.debug(v:throwpoint)
     endtry
   endif
 
@@ -50,7 +51,7 @@ function! s:command(cmdline, bang, range) abort
   let args = s:Argument.new(a:cmdline)
   let quiet = args.pop('-q|--quiet')
   let interactive = args.pop('--interactive')
-  call args.map_p('v:val ==# ''%'' ? giit#expand(''%'') : v:val')
+  call args.map_p({ v -> v ==# '%' ? giit#expand(v) : v })
   if interactive
     let result = s:GitProcess.shell(git, args.raw, { 'stdout': 1 })
   else
@@ -73,11 +74,15 @@ function! s:complete(arglead, cmdline, cursorpos) abort
     try
       return call(fname, [a:arglead, a:cmdline, a:cursorpos])
     catch /^Vim\%((\a\+)\)\=:E117/
-      " fail silently
+      call s:Prompt.debug(v:exception)
+      call s:Prompt.debug(v:throwpoint)
     endtry
   endif
   let candidates = [
+        \ 'edit',
         \ 'show',
+        \ 'status',
+        \ 'commit',
         \ 'log',
         \]
   return giit#complete#filter(a:arglead, candidates)

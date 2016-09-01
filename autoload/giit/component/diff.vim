@@ -8,7 +8,7 @@ let s:Exception = vital#giit#import('Vim.Exception')
 let s:WORKTREE = '@@'
 
 
-function! giit#component#show#autocmd(event) abort
+function! giit#component#diff#autocmd(event) abort
   let bufname = expand('<afile>')
   let object = matchstr(bufname, '^giit://.*:diff\%(:patch\)\?/\zs.*$')
   let patch  = bufname =~# '^giit://.*:diff:patch/'
@@ -32,6 +32,7 @@ function! s:on_BufReadCmd(object, patch) abort
   call giit#meta#set('filename', matchstr(a:object, '^[^:]*:\zs.*'))
   call giit#util#doautocmd('BufRead')
   call s:init(a:object, a:patch)
+  setlocal filetype=diff
 endfunction
 
 

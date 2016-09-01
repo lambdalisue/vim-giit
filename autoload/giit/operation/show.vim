@@ -7,7 +7,7 @@ let s:Argument = vital#giit#import('Argument')
 function! giit#operation#show#command(args) abort
   let git = giit#core#get_or_fail()
   let opener = a:args.pop('-o|--opener', '')
-  let object = a:args.apply_p(0, function('s:expand_object', [git]))
+  let object = a:args.apply_p(0, { v -> s:expand_object(git, v) })
   let bufname = giit#component#bufname(git, 'show')
   let bufname = printf('%s%s/%s',
         \ bufname,
@@ -51,15 +51,15 @@ endfunction
 
 function! giit#operation#show#execute(git, args) abort
   let args = a:args.clone()
-  call args.apply_p(0, function('s:normalize_object', [a:git]))
-  call filter(['show'] + args.raw, '!empty(v:val)')
-  return a:git.execute(args.raw, {
+  call args.apply_p(0, { v -> s:normalize_object(a:git, v) })
+  call filter(args.raw, '!empty(v:val)')
+  return a:git.execute(['show'] + args.raw, {
         \ 'encode_output': 0,
         \})
 endfunction
 
 
-function! s:expand_object(git, _, object) abort
+function! s:expand_object(git, object) abort
   let m = matchlist(a:object, '^\([^:]*:\?\)\(.*\)$')
   if empty(m)
     return ''
@@ -68,7 +68,7 @@ function! s:expand_object(git, _, object) abort
   return m[1] . relpath
 endfunction
 
-function! s:normalize_object(git, _, object) abort
+function! s:normalize_object(git, object) abort
   let m = matchlist(a:object, '^\([^:]*\)\%(:\(.*\)\)\?$')
   if empty(m)
     return ''
