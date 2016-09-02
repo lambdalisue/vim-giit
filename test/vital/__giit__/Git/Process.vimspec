@@ -153,7 +153,7 @@ Describe Git.Process
       " git rev-parse --show-toplevel returns an UNIX path even in Windows
       " NOTE:
       " A temporary directory is symlinked in Mac OS X
-      Assert Equals(result.stdout, [Path.unixpath(resolve(inside))])
+      Assert Equals(result.content, [Path.unixpath(resolve(inside))])
     End
 
     It executes a git command via shell (!) in a cwd if {git} is NOT specified
@@ -167,7 +167,7 @@ Describe Git.Process
       " git rev-parse --show-toplevel returns an UNIX path even in Windows
       " NOTE:
       " A temporary directory is symlinked in Mac OS X
-      Assert Equals(result.stdout, [Path.unixpath(resolve(getcwd()))])
+      Assert Equals(result.content, [Path.unixpath(resolve(getcwd()))])
     End
   End
 End
