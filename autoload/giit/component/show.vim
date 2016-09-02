@@ -12,41 +12,56 @@ endfunction
 function! s:on_BufReadCmd() abort
   call s:Exception.register(function('s:exception_handler'))
   let git = giit#core#get_or_fail()
-  let args = s:adjust(git, expand('<afile>'))
-  let result = giit#operation#show#execute(git, args)
-  if result.status
-    call giit#operation#throw(result)
-  endif
-  call giit#meta#set('args', args)
-  call giit#meta#set('commit', args.options.commit)
-  call giit#meta#set('filename', args.options.filename)
-  call s:init(args)
-  call s:Buffer.edit_content(result.content)
+  let bufinfo = s:build_bufinfo(git, expand('<afile>'))
+  let content = s:execute_command(git, bufinfo)
+
+  call giit#meta#set('commit', bufinfo.commit)
+  call giit#meta#set('filename', git.abspath(bufinfo.filename))
+
+  call s:init(bufinfo)
+  call s:Buffer.edit_content(content)
   call giit#util#doautocmd('BufRead')
 endfunction
 
 
 " private --------------------------------------------------------------------
-function! s:adjust(git, bufname) abort
+function! s:build_bufinfo(git, bufname) abort
   let extra  = matchstr(a:bufname, '^giit://[^:]\+:[^:]\+:\zs[^/]\+')
   let object = matchstr(a:bufname, '^giit://[^:]\+:[^/]\+/\zs.*$')
   let [commit, filename] = giit#component#split_object(object)
-
-  let args = giit#meta#get('args', s:Argument.new())
-  let args.options = get(args, 'options', {})
-  let args.options.patch  = extra =~# '\<patch\>'
-  let args.options.commit = commit
-  let args.options.filename = a:git.abspath(filename)
-  return args.lock()
+  let bufinfo = {}
+  let bufinfo.patch  = extra =~# '\<patch\>'
+  let bufinfo.commit = commit
+  let bufinfo.filename = filename
+  return bufinfo
 endfunction
 
-function! s:init(args) abort
+function! s:execute_command(git, bufinfo) abort
+  let args = giit#meta#get('args', s:Argument.new())
+  let raws = giit#util#collapse([
+        \ 'show',
+        \ giit#component#build_object(
+        \   a:bufinfo.commit,
+        \   a:bufinfo.filename,
+        \ ),
+        \ args.raw,
+        \])
+  let result = a:git.execute(raws, {
+        \ 'encode_output': 0,
+        \})
+  if result.status
+    call giit#operation#throw(result)
+  endif
+  return result.content
+endfunction
+
+function! s:init(info) abort
   if exists('b:_giit_initialized')
     return
   endif
   let b:_giit_initialized = 1
 
-  if a:args.options.patch
+  if a:info.patch
     augroup giit-internal-component-show
       "autocmd BufWriteCmd <buffer> call s:on_BufWriteCmd()
     augroup END
