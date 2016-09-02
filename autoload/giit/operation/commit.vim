@@ -16,7 +16,6 @@ function! giit#operation#commit#command(args) abort
   else
     let bufname = printf('%s%s%s',
           \ giit#component#bufname(git, 'commit', 1),
-          \ args.options.dry_run ? ':dry-run' : '',
           \ args.options.amend ? ':amend' : '',
           \)
 
@@ -48,8 +47,8 @@ function! giit#operation#commit#execute(git, args) abort
         \ a:args.raw,
         \ a:args.options.edit ? '--edit' : '',
         \ a:args.options.amend ? '--amend' : '',
-        \ a:args.options.dry_run ? '--dry-run' : '',
         \])
+
   if !a:args.options.dry_run
     " -m|--message
     let message = get(a:args.options, 'message', '')
@@ -114,15 +113,13 @@ function! s:adjust(git, args) abort
   call args.pop('--no-edit')
   let args.options = {}
   let args.options.opener = args.pop('-o|--opener', 'botright 15split')
-  let args.options.amend = args.pop('--amend')
-  let args.options.dry_run = args.pop('--dry-run')
   let args.options.edit = args.pop('-e|--edit') || !s:List.or([
         \ args.has('-C|--reuse-message'),
         \ args.has('-F|--file'),
         \ args.has('-m|--message'),
         \ args.pop('--no-edit'),
-        \ args.options.dry_run,
         \])
+  let args.options.amend = args.pop('--amend')
   let args.options.message = args.pop('-m|--message', '')
   return args.lock()
 endfunction

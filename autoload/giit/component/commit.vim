@@ -49,10 +49,8 @@ function! s:adjust(git, bufname) abort
 
   let args = giit#meta#get('args', s:Argument.new())
   let args.options = get(args, 'options', {})
-  let args.options.dry_run = extra =~# '\<dry-run\>'
-  let args.options.amend = extra =~# '\<amend\>'
-  let args.options.message = join(s:get_working_commitmsg(a:git, args), "\n")
   let args.options.edit = 1
+  let args.options.amend = extra =~# '\<amend\>'
   return args.lock()
 endfunction
 
@@ -80,7 +78,7 @@ function! s:init(args) abort
   endif
 
   nnoremap <buffer><silent> <Plug>(giit-commit) :<C-u>call <SID>commit_commitmsg()<CR>
-  nmap <buffer> <C-S-CR> <Plug>(giit-commit)
+  nmap <buffer> <C-c><C-c> <Plug>(giit-commit)
 endfunction
 
 function! s:exception_handler(exception) abort
@@ -110,13 +108,24 @@ function! s:commit_commitmsg() abort
   let args = giit#meta#require('args')
   let clone = args.clone()
   let clone.options = s:Dict.omit(args.options, [
-        \ 'edit',
+        \ 'message',
         \])
   let clone.options.file = git.core.expand('COMMIT_EDITMSG')
+  let clone.options.edit = 0
   let result = giit#operation#commit#execute(git, clone)
   if result.status
     call giit#operation#throw(result)
   endif
   call giit#operation#inform(result)
   call git.cache.remove('WORKING_COMMIT_EDITMSG')
+  edit
+endfunction
+
+function! s:get_commitmsg(git, args) abort
+  let args = a:args.clone()
+  let args.options = copy(a:args.options)
+  call args.set('-m|--message', join(
+        \ s:get_working_commitmsg(a:git, args),
+        \ "\n"
+        \))
 endfunction
