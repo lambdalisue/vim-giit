@@ -1,3 +1,6 @@
+let s:List = vital#giit#import('Data.List')
+
+
 function! giit#util#doautocmd(name, ...) abort
   let pattern = get(a:000, 0, '')
   let expr = empty(pattern)
@@ -63,58 +66,6 @@ function! giit#util#fname(...) abort
   return 'giit#' . join(trees, '#')
 endfunction
 
-if has('lua')
-  function! giit#util#all(array) abort
-    let result = [0]
-    lua << EOF
-do
-  local function empty(x)
-    return (not x or x == 0 or x == '' or (type(x) == 'userdata' and #x == 0))
-  end
-  local function all(array)
-    for i = 0, #array - 1 do
-      if empty(array[i]) then
-        return 0
-      end
-    end
-    return 1
-  end
-  local array = vim.eval('a:array')
-  local result = vim.eval('result')
-  result[0] = all(array)
-end
-EOF
-    return float2nr(result[0])
-  endfunction
-
-  function! giit#util#any(array) abort
-    let result = [0]
-    lua << EOF
-do
-  local function empty(x)
-    return (not x or x == 0 or x == '' or (type(x) == 'userdata' and #x == 0))
-  end
-  local function any(array)
-    for i = 0, #array - 1 do
-      if not empty(array[i]) then
-        return 1
-      end
-    end
-    return 0
-  end
-  local array = vim.eval('a:array')
-  local result = vim.eval('result')
-  result[0] = any(array)
-end
-EOF
-    return float2nr(result[0])
-  endfunction
-else
-  function! giit#util#all(array) abort
-    return len(filter(copy(a:array), 'empty(v:val)')) == 0
-  endfunction
-
-  function! giit#util#any(array) abort
-    return len(filter(copy(a:array), '!empty(v:val)')) > 0
-  endfunction
-endif
+function! giit#util#collapse(list) abort
+  return filter(s:List.flatten(a:list), '!empty(v:val)')
+endfunction

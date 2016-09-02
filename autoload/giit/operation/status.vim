@@ -2,29 +2,29 @@ let s:Path = vital#giit#import('System.Filepath')
 let s:Guard = vital#giit#import('Vim.Guard')
 let s:Opener = vital#giit#import('Vim.Buffer.Opener')
 let s:Anchor = vital#giit#import('Vim.Buffer.Anchor')
+let s:t_number = type(0)
 
 
+" SYNOPSIS
+" Giit status [options]
 function! giit#operation#status#command(args) abort
   let git = giit#core#get_or_fail()
-  let opener = a:args.pop('-o|--opener', 'botright 15split')
+  let args = s:adjust(git, a:args)
   let bufname = giit#component#bufname(git, 'status', 1)
 
-  call s:Anchor.focus_if_available(opener)
+  call s:Anchor.focus_if_available(args.options.opener)
   let guard = s:Guard.store(['&eventignore'])
   try
     set eventignore+=BufReadCmd
     let context = s:Opener.open(bufname, {
           \ 'group': 'selector',
-          \ 'opener': opener,
+          \ 'opener': args.options.opener,
           \})
   finally
     call guard.restore()
   endtry
-  let is_expired = !context.bufloaded || giit#meta#modified('args', a:args)
-  call giit#meta#set('args', a:args)
-  if is_expired
-    edit!
-  endif
+  call giit#meta#set('args', args)
+  edit
   call context.end()
 endfunction
 
@@ -33,11 +33,33 @@ function! giit#operation#status#complete(arglead, cmdline, cursorpos) abort
 endfunction
 
 function! giit#operation#status#execute(git, args) abort
-  return a:git.execute(['status'] + a:args.raw, {
+  let args = giit#util#collapse([
+        \ 'status',
+        \ a:args.raw,
+        \])
+  return a:git.execute(args, {
         \ 'encode_output': 0,
         \})
 endfunction
 
+
+function! s:adjust(git, args) abort
+  let args = a:args.clone()
+
+  " Add requirements
+  call args.set('--porcelain', 1)
+  call args.set('--no-column', 1)
+  " Remove unsupported options
+  call args.pop('-s|--short')
+  call args.pop('-b|--branch')
+  call args.pop('--long')
+  call args.pop('-z')
+  call args.pop('--column')
+
+  let args.options = {}
+  let args.options.opener = args.pop('-o|--opener', 'botright 15split')
+  return args.lock()
+endfunction
 
 " Parse ----------------------------------------------------------------------
 let s:record_pattern =

@@ -11,3 +11,4 @@ Vim.Prompt
 Vim.Lua.String
 Vim.Buffer.Opener
 Vim.Buffer.Anchor
+Data.List

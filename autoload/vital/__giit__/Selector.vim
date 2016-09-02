@@ -51,14 +51,17 @@ function! s:attach(name, ...) abort
 
   " Define <Plug> mappings so that developers could use these mappings
   " to select/toggle or whatever
-  execute printf('nnoremap <silent><buffer> <Plug>(%s-candidate-select) :<C-u>call <SID>_on_candidate_select()<CR>', a:name)
-  execute printf('vnoremap <silent><buffer> <Plug>(%s-candidate-select) :call <SID>_on_candidate_select()<CR>', a:name)
-  execute printf('nnoremap <silent><buffer> <Plug>(%s-candidate-unselect) :<C-u>call <SID>_on_candidate_unselect()<CR>', a:name)
-  execute printf('vnoremap <silent><buffer> <Plug>(%s-candidate-unselect) :call <SID>_on_candidate_unselect()<CR>', a:name)
-  execute printf('nnoremap <silent><buffer> <Plug>(%s-candidate-toggle) :<C-u>call <SID>_on_candidate_toggle()<CR>', a:name)
-  execute printf('vnoremap <silent><buffer> <Plug>(%s-candidate-toggle) :call <SID>_on_candidate_toggle()<CR>', a:name)
-  execute printf('nnoremap <silent><buffer> <Plug>(%s-candidate-toggle-all) :<C-u>call <SID>_on_candidate_toggle_all()<CR>', a:name)
-  execute printf('nnoremap <silent><buffer> <Plug>(%s-gg) ggj', a:name)
+  execute printf('nnoremap <silent><buffer> <Plug>(%s-selector-select) :<C-u>call <SID>_on_candidate_select()<CR>', a:name)
+  execute printf('vnoremap <silent><buffer> <Plug>(%s-selector-select) :call <SID>_on_candidate_select()<CR>', a:name)
+  execute printf('nnoremap <silent><buffer> <Plug>(%s-selector-unselect) :<C-u>call <SID>_on_candidate_unselect()<CR>', a:name)
+  execute printf('vnoremap <silent><buffer> <Plug>(%s-selector-unselect) :call <SID>_on_candidate_unselect()<CR>', a:name)
+  execute printf('nnoremap <silent><buffer> <Plug>(%s-selector-toggle) :<C-u>call <SID>_on_candidate_toggle()<CR>', a:name)
+  execute printf('vnoremap <silent><buffer> <Plug>(%s-selector-toggle) :call <SID>_on_candidate_toggle()<CR>', a:name)
+  execute printf('nnoremap <silent><buffer> <Plug>(%s-selector-select-each) :call <SID>_on_candidate_select_each()<CR>', a:name)
+  execute printf('nnoremap <silent><buffer> <Plug>(%s-selector-unselect-each) :call <SID>_on_candidate_unselect_each()<CR>', a:name)
+  execute printf('nnoremap <silent><buffer> <Plug>(%s-selector-toggle-each) :<C-u>call <SID>_on_candidate_toggle_each()<CR>', a:name)
+  execute printf('nnoremap <silent><buffer> <Plug>(%s-selector-toggle-all) :<C-u>call <SID>_on_candidate_toggle_all()<CR>', a:name)
+  execute printf('nnoremap <silent><buffer> <Plug>(%s-selector-gg) ggj', a:name)
 
   " Define autocmd to regulate the behaviour
   augroup vital-interface-selector-attach
@@ -98,12 +101,16 @@ endfunction
 let s:selector = {}
 
 function! s:selector.init() abort
-  nmap <buffer><nowait> *       <Plug>(giit-candidate-toggle-all)
-  nmap <buffer><nowait> J       <Plug>(giit-candidate-toggle)j
-  nmap <buffer><nowait> K       <Plug>(giit-candidate-toggle)k
-  nmap <buffer><nowait> <Space> <Plug>(giit-candidate-toggle)
-  vmap <buffer><nowait> <Space> <Plug>(giit-candidate-toggle)gv
-  nmap <buffer><nowait> gg      <Plug>(giit-gg)
+  let name = self.name
+  execute printf('nmap <buffer> gg <Plug>(%s-selector-gg)', name)
+  execute printf('nmap <buffer> * <Plug>(%s-selector-toggle-all)', name)
+  execute printf('vmap <buffer> * <Plug>(%s-selector-toggle)', name)
+  execute printf('nmap <buffer> ! <Plug>(%s-selector-toggle-each)', name)
+  execute printf('vmap <buffer> ! <Plug>(%s-selector-toggle)', name)
+  execute printf('nmap <buffer> J <Plug>(%s-selector-toggle)j', name)
+  execute printf('nmap <buffer> K <Plug>(%s-selector-toggle)k', name)
+  execute printf('nmap <buffer> <Space> <Plug>(%s-selector-toggle)', name)
+  execute printf('vmap <buffer> <Space> <Plug>(%s-selector-toggle)', name)
 
   setlocal nolist nospell
   setlocal nowrap nofoldenable
@@ -443,7 +450,29 @@ function! s:_on_candidate_toggle() range abort
   call selector.redraw_lines(a:firstline, a:lastline)
 endfunction
 
-function! s:_on_candidate_toggle_all() abort
+function! s:_on_candidate_select_each() range abort
+  let selector = s:get()
+  if !selector.selectable
+    return
+  endif
+  for index in selector.available_indices
+    call selector.select_candidate(index)
+  endfor
+  call selector.redraw()
+endfunction
+
+function! s:_on_candidate_unselect_each() range abort
+  let selector = s:get()
+  if !selector.selectable
+    return
+  endif
+  for index in selector.available_indices
+    call selector.unselect_candidate(index)
+  endfor
+  call selector.redraw()
+endfunction
+
+function! s:_on_candidate_toggle_each() abort
   let selector = s:get()
   if !selector.selectable
     return
@@ -452,6 +481,28 @@ function! s:_on_candidate_toggle_all() abort
     call selector.toggle_candidate(index)
   endfor
   call selector.redraw()
+endfunction
+
+function! s:_on_candidate_toggle_all() abort
+  let selector = s:get()
+  if !selector.selectable
+    return
+  endif
+  " Count the number of selected/unselected
+  let selected = 0
+  let unselected = 0
+  for index in selector.available_indices
+    if has_key(selector.selected_indexmap, index)
+      let selected += 1
+    else
+      let unselected += 1
+    endif
+  endfor
+  if selected > unselected
+    call s:_on_candidate_unselect_each()
+  else
+    call s:_on_candidate_select_each()
+  endif
 endfunction
 
 " autocmd --------------------------------------------------------------------

@@ -17,24 +17,24 @@ function! s:on_BufReadCmd() abort
   if result.status
     call giit#operation#throw(result)
   endif
-  call s:Buffer.edit_content(result.content)
   call giit#meta#set('args', args)
   call giit#meta#set('commit', args.options.commit)
   call giit#meta#set('filename', args.options.filename)
   call s:init(args)
+  call s:Buffer.edit_content(result.content)
   call giit#util#doautocmd('BufRead')
 endfunction
 
 
 " private --------------------------------------------------------------------
 function! s:adjust(git, bufname) abort
-  let patch  = a:bufname =~# '^giit://.*:show:patch/'
-  let object = matchstr(a:bufname, '^giit://.*:show\%(:patch\)\?/\zs.*$')
+  let extra  = matchstr(a:bufname, '^giit://[^:]\+:[^:]\+:\zs[^/]\+')
+  let object = matchstr(a:bufname, '^giit://[^:]\+:[^/]\+/\zs.*$')
   let [commit, filename] = giit#component#split_object(object)
 
   let args = giit#meta#get('args', s:Argument.new())
   let args.options = get(args, 'options', {})
-  let args.options.patch = patch
+  let args.options.patch  = extra =~# '\<patch\>'
   let args.options.commit = commit
   let args.options.filename = a:git.abspath(filename)
   return args.lock()

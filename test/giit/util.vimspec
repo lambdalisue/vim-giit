@@ -63,30 +63,4 @@ Describe giit#util
   Describe #syncbind()
     " TODO
   End
-
-  Describe #all()
-    It returns 1 when all items of {array} are truthy values
-      Assert True(giit#util#all(['a', 1, [1], {'a': 1}]))
-    End
-
-    It returns 0 when one of item of {array} is falsy value
-      Assert False(giit#util#all(['', 1, [1], {'a': 1}]))
-      Assert False(giit#util#all(['a', 0, [1], {'a': 1}]))
-      Assert False(giit#util#all(['a', 1, [], {'a': 1}]))
-      Assert False(giit#util#all(['a', 1, [1], {}]))
-    End
-  End
-
-  Describe #any()
-    It returns 1 when one of item of {array} is truthy value
-      Assert True(giit#util#any(['a', 0, [], {}]))
-      Assert True(giit#util#any(['', 1, [], {}]))
-      Assert True(giit#util#any(['', 0, [1], {}]))
-      Assert True(giit#util#any(['', 0, [], {'a': 1}]))
-    End
-
-    It returns 0 when all items of {array} are falsy value
-      Assert False(giit#util#any(['', 0, [], {}]))
-    End
-  End
 End

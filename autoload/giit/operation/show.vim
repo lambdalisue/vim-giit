@@ -30,13 +30,8 @@ function! giit#operation#show#command(args) abort
   finally
     call guard.restore()
   endtry
-  let is_expired = giit#util#any([
-        \ !context.bufloaded,
-        \ giit#meta#modified('args', args),
-        \ empty(args.options.commit)
-        \])
   call giit#meta#set('args', args)
-  execute 'edit' . (is_expired ? '!' : '')
+  edit
   call context.end()
 endfunction
 
@@ -63,14 +58,14 @@ function! giit#operation#show#complete(arglead, cmdline, cursorpos) abort
 endfunction
 
 function! giit#operation#show#execute(git, args) abort
-  let object = giit#component#build_object(
-        \ a:args.options.commit,
-        \ a:git.relpath(a:args.options.filename),
-        \)
-  let args = filter(
-        \ ['show', object] + a:args.raw,
-        \ '!empty(v:val)'
-        \)
+  let args = giit#util#collapse([
+        \ 'show',
+        \ giit#component#build_object(
+        \   a:args.options.commit,
+        \   a:git.relpath(a:args.options.filename),
+        \ ),
+        \ a:args.raw,
+        \])
   return a:git.execute(args, {
         \ 'encode_output': 0,
         \})

@@ -17,28 +17,29 @@ endfunction
 function! s:on_BufReadCmd() abort
   call s:Exception.register(function('s:exception_handler'))
   let git = giit#core#get_or_fail()
-  let args = giit#meta#get('args', s:Argument.new())
-  call args.set('--porcelain', 1)
-  call args.pop('-s|--short')
-  call args.pop('-b|--branch')
-  call args.pop('--long')
-  call args.pop('-z')
-  call args.pop('--column')
+  let args = s:adjust(git, expand('<afile>'))
   let result = giit#operation#status#execute(git, args)
   if result.status
     call giit#operation#throw(result)
   endif
   call giit#meta#set('args', args)
-  call s:init()
+  call s:init(args)
   let candidates = giit#operation#status#parse(git, result.content)
   let selector = s:Selector.get()
   call selector.assign_candidates(candidates)
   call selector.define_syntax()
+  call giit#util#doautocmd('BufRead')
 endfunction
 
 
 " private --------------------------------------------------------------------
-function! s:init() abort
+function! s:adjust(git, bufname) abort
+  let args = giit#meta#get('args', s:Argument.new())
+  let args.options = get(args, 'options', {})
+  return args.lock()
+endfunction
+
+function! s:init(args) abort
   if exists('b:_giit_initialized')
     return
   endif
