@@ -1,3 +1,4 @@
+let s:Dict = vital#giit#import('Data.Dict')
 let s:Path = vital#giit#import('System.Filepath')
 let s:Buffer = vital#giit#import('Vim.Buffer')
 let s:Anchor = vital#giit#import('Vim.Buffer.Anchor')
@@ -17,7 +18,7 @@ function! s:on_BufReadCmd() abort
   let git = giit#core#get_or_fail()
   let args = s:adjust(git, expand('<afile>'))
   let result = giit#operation#commit#execute(git, args)
-  if !args.options.dry
+  if !args.options.dry_run
     let result.status = !result.status
   endif
   if result.status
@@ -48,9 +49,10 @@ function! s:adjust(git, bufname) abort
 
   let args = giit#meta#get('args', s:Argument.new())
   let args.options = get(args, 'options', {})
-  let args.options.dry = extra =~# '\<dry\>'
+  let args.options.dry_run = extra =~# '\<dry-run\>'
   let args.options.amend = extra =~# '\<amend\>'
   let args.options.message = join(s:get_working_commitmsg(a:git, args), "\n")
+  let args.options.edit = 1
   return args.lock()
 endfunction
 
@@ -71,11 +73,14 @@ function! s:init(args) abort
   augroup END
 
   setlocal buftype=acwrite nobuflisted
-  if a:args.options.dry
+  if a:args.options.dry_run
     setlocal nomodifiable
   else
     setlocal modifiable
   endif
+
+  nnoremap <buffer><silent> <Plug>(giit-commit) :<C-u>call <SID>commit_commitmsg()<CR>
+  nmap <buffer> <C-S-CR> <Plug>(giit-commit)
 endfunction
 
 function! s:exception_handler(exception) abort
@@ -100,18 +105,18 @@ function! s:set_working_commitmsg(git, args, message) abort
   call a:git.cache.set('WORKING_COMMIT_EDITMSG', cache)
 endfunction
 
-function! s:commit(git, args) abort
-  "let options = s:Dict.omit(a:options, [
-  "      \ 'patch',
-  "      \ 'reuse-message',
-  "      \ 'reedit-message',
-  "      \ 'file',
-  "      \ 'message',
-  "      \ 'edit',
-  "      \ 'no-edit',
-  "      \])
-  "let options.file = s:Path.join(a:git.repository, 'COMMIT_EDITMSG')
-  "let options.cleanup = get(options, 'cleanup', 'strip')
-  "let result = giit#operation#commit#execute(a:git, options)
-  "call giit#operation#inform(result, a:options)
+function! s:commit_commitmsg() abort
+  let git = giit#core#get_or_fail()
+  let args = giit#meta#require('args')
+  let clone = args.clone()
+  let clone.options = s:Dict.omit(args.options, [
+        \ 'edit',
+        \])
+  let clone.options.file = git.core.expand('COMMIT_EDITMSG')
+  let result = giit#operation#commit#execute(git, clone)
+  if result.status
+    call giit#operation#throw(result)
+  endif
+  call giit#operation#inform(result)
+  call git.cache.remove('WORKING_COMMIT_EDITMSG')
 endfunction
