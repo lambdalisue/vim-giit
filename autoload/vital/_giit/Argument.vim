@@ -93,6 +93,11 @@ endfunction
 
 let s:args = {}
 
+function! s:args.lock() abort
+  lockvar self.raw
+  return self
+endfunction
+
 function! s:args.clone() abort
   return s:new(copy(self.raw))
 endfunction
