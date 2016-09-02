@@ -2,14 +2,14 @@ function! giit#complete#commit#any(arglead, cmdline, cursorpos) abort
   let candidates = []
   let candidates += giit#complete#commit#branch(a:arglead, a:cmdline, a:cursorpos)
   let candidates += giit#complete#commit#hashref(a:arglead, a:cmdline, a:cursorpos)
-  return candidates
+  return s:filter(a:arglead, candidates)
 endfunction
 
 function! giit#complete#commit#branch(arglead, cmdline, cursorpos) abort
   let slug = eval(giit#util#slug())
   let git = giit#core#get_or_fail()
   let candidates = git.core.get_cached_content(slug, 'config', [])
-  if empty(candidates) || 1
+  if empty(candidates)
     let candidates = s:get_available_branches(git, ['--all'])
     call git.core.set_cached_content(slug, 'config', candidates)
   endif
@@ -20,7 +20,7 @@ function! giit#complete#commit#local_branch(arglead, cmdline, cursorpos) abort
   let slug = eval(giit#util#slug())
   let git = giit#core#get_or_fail()
   let candidates = git.core.get_cached_content(slug, 'config', [])
-  if empty(candidates) || 1
+  if empty(candidates)
     let candidates = s:get_available_branches(git, [])
     call git.core.set_cached_content(slug, 'config', candidates)
   endif
@@ -31,7 +31,7 @@ function! giit#complete#commit#remote_branch(arglead, cmdline, cursorpos) abort
   let slug = eval(giit#util#slug())
   let git = giit#core#get_or_fail()
   let candidates = git.core.get_cached_content(slug, 'config', [])
-  if empty(candidates) || 1
+  if empty(candidates)
     let candidates = s:get_available_branches(git, ['--remotes'])
     call git.core.set_cached_content(slug, 'config', candidates)
   endif
@@ -42,7 +42,7 @@ function! giit#complete#commit#hashref(arglead, cmdline, cursorpos) abort
   let slug = eval(giit#util#slug())
   let git = giit#core#get_or_fail()
   let candidates = git.core.get_cached_content(slug, 'index', [])
-  if empty(candidates) || 1
+  if empty(candidates)
     let candidates = s:get_available_commits(git, [])
     call git.core.set_cached_content(slug, 'index', candidates)
   endif

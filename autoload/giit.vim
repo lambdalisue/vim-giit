@@ -11,7 +11,6 @@ function! giit#expand(expr) abort
   endif
   let git = giit#core#get()
   let path = giit#meta#get_at(a:expr, 'filename', expand(a:expr))
-  let path = empty(git) ? s:Path.abspath(path) : git.abspath(path)
   return s:Path.remove_last_separator(path)
 endfunction
 
@@ -25,6 +24,7 @@ endfunction
 call s:Config.define('giit', {
       \ 'test': 0,
       \ 'debug': -1,
+      \ 'develop': 1,
       \ 'complete_threshold': 30,
       \})
 

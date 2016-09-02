@@ -4,40 +4,49 @@ let s:Exception = vital#giit#import('Vim.Exception')
 
 
 function! giit#component#show#autocmd(event) abort
-  let bufname = expand('<afile>')
-  let object = matchstr(bufname, '^giit://.*:show\%(:patch\)\?/\zs.*$')
-  let patch  = bufname =~# '^giit://.*:show:patch/'
-  return call('s:on_' . a:event, [object, patch])
+  return call('s:on_' . a:event, [])
 endfunction
 
 
 " autocmd --------------------------------------------------------------------
-function! s:on_BufReadCmd(object, patch) abort
+function! s:on_BufReadCmd() abort
   call s:Exception.register(function('s:exception_handler'))
   let git = giit#core#get_or_fail()
-  let args = giit#meta#get('args', s:Argument.new())
-  call args.set_p(0, a:object)
+  let args = s:adjust(git, expand('<afile>'))
   let result = giit#operation#show#execute(git, args)
   if result.status
     call giit#operation#throw(result)
   endif
   call s:Buffer.edit_content(result.content)
   call giit#meta#set('args', args)
-  call giit#meta#set('commit', matchstr(a:object, '^[^:]*\ze'))
-  call giit#meta#set('filename', matchstr(a:object, '^[^:]*:\zs.*$'))
+  call giit#meta#set('commit', args.options.commit)
+  call giit#meta#set('filename', args.options.filename)
+  call s:init(args)
   call giit#util#doautocmd('BufRead')
-  call s:init(a:object, a:patch)
 endfunction
 
 
 " private --------------------------------------------------------------------
-function! s:init(object, patch) abort
+function! s:adjust(git, bufname) abort
+  let patch  = a:bufname =~# '^giit://.*:show:patch/'
+  let object = matchstr(a:bufname, '^giit://.*:show\%(:patch\)\?/\zs.*$')
+  let [commit, filename] = giit#component#split_object(object)
+
+  let args = giit#meta#get('args', s:Argument.new())
+  let args.options = get(args, 'options', {})
+  let args.options.patch = patch
+  let args.options.commit = commit
+  let args.options.filename = a:git.abspath(filename)
+  return args.lock()
+endfunction
+
+function! s:init(args) abort
   if exists('b:_giit_initialized')
     return
   endif
   let b:_giit_initialized = 1
 
-  if a:patch
+  if a:args.options.patch
     augroup giit-internal-component-show
       "autocmd BufWriteCmd <buffer> call s:on_BufWriteCmd()
     augroup END

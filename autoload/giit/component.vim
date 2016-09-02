@@ -13,3 +13,17 @@ function! giit#component#bufname(git, scheme, ...) abort
   let pattern = nofile ? 'giit:%s:%s' : 'giit://%s:%s'
   return printf(pattern, refname, a:scheme)
 endfunction
+
+function! giit#component#split_object(object) abort
+  let m = matchlist(a:object, '^\(:\?[^:]*\):\(.\+\)$')
+  if empty(m)
+    return [a:object, '']
+  endif
+  return m[1:2]
+endfunction
+
+function! giit#component#build_object(commit, filename) abort
+  return empty(a:filename)
+        \ ? a:commit
+        \ : a:commit . ':' . a:filename
+endfunction
