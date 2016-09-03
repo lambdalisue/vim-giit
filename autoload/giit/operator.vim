@@ -19,11 +19,10 @@ endfunction
 
 " Utility --------------------------------------------------------------------
 function! giit#operator#inform(result) abort
-  let [hl, prefix] = a:result.status
-        \ ? ['WarningMsg', 'Fail']
-        \ : ['Title', 'OK']
   redraw | echo
-  call s:Prompt.echo(hl, prefix . ': ' . join(a:result.args))
+  if a:result.status
+    call s:Prompt.echo('WarningMsg', 'Fail: ' . join(a:result.args))
+  endif
   for line in a:result.content
     call s:Prompt.echo('None', line)
   endfor

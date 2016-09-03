@@ -44,6 +44,7 @@ function! s:new(...) abort
   endif
   let args = copy(s:args)
   let args.raw = init
+  lockvar 1 args
   return args
 endfunction
 
@@ -151,6 +152,17 @@ function! s:args.set(query, value, ...) abort
           \)
     let index = self.search(a:query, index + 1)
   endwhile
+  return self
+endfunction
+
+function! s:args.default(query, value, ...) abort
+  if type(a:value) == s:t_number && a:value == 0
+    return self
+  endif
+  let index = self.search(a:query, get(a:000, 1, 0))
+  if index == -1
+    call add(self.raw, s:build_term(split(a:query, '|')[-1], a:value))
+  endif
   return self
 endfunction
 
@@ -263,6 +275,20 @@ function! s:args.set_p(nth, value, ...) abort
     let self.raw[-1] = a:value
   else
     let self.raw[index] = a:value
+  endif
+  return self
+endfunction
+
+function! s:args.default_p(nth, value, ...) abort
+  if type(a:value) == s:t_number && a:value == 0
+    " Do nothing
+    return self
+  endif
+  let index = self.search_p(a:nth, get(a:000, 0, 0))
+  if index == -1
+    let n = len(filter(copy(self.raw), 'v:val !~# ''^--\?\w\+'''))
+    let self.raw += repeat([''], a:nth - n + 1)
+    let self.raw[-1] = a:value
   endif
   return self
 endfunction

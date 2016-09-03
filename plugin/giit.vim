@@ -12,12 +12,8 @@ endif
 
 let s:is_windows = has('win16') || has('win32') || has('win64')
 
-"command! -nargs=* -bang -range
-"      \ -complete=customlist,giit#operation#complete
-"      \ Giit
-"      \ call giit#operation#command(<q-bang>, [<line1>, <line2>], <q-args>)
 command! -nargs=* -bang -range
-      \ -complete=customlist,giit#operation#complete
+      \ -complete=customlist,giit#operator#complete
       \ Giit
       \ call giit#command#command(<q-bang>, [<line1>, <line2>], <q-args>)
 
