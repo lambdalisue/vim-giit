@@ -22,8 +22,7 @@ function! s:command(bang, range, qargs) abort
             \ printf('giit#command#%s#command', scheme),
             \ [a:range, a:qargs]
             \)
-    "catch /^Vim\%((\a\+)\)\=:E117/
-    catch /E117/
+    catch /^Vim\%((\a\+)\)\=:E117/
       call s:Prompt.debug(v:exception)
       call s:Prompt.debug(v:throwpoint)
     endtry
