@@ -1,8 +1,8 @@
-Describe giit#operator#status
+Describe giit#util#status
   Before all
     let Path = vital#vital#import('System.Filepath')
     let scope = themis#helper('scope')
-    let sfile = Path.realpath('autoload/giit/operator/status.vim')
+    let sfile = Path.realpath('autoload/giit/util/status.vim')
     let sf = scope.funcs(sfile)
   End
 

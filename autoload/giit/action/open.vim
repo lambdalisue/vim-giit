@@ -1,6 +1,3 @@
-let s:Anchor = vital#giit#import('Vim.Buffer.Anchor')
-
-
 function! giit#action#open#define(binder) abort
   call a:binder.define('edit', function('s:on_edit'), {
         \ 'description': 'Open and edit a content',

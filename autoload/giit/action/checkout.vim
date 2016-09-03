@@ -60,22 +60,16 @@ function! s:on_checkout(candidates, options) abort
         \ 'theirs': 0,
         \ 'commit': '',
         \}, a:options)
-  let args = [
-        \ 'checkout',
+  let pathlist = map(
+        \ copy(a:candidates),
+        \ 'shellescape(git.relpath(v:val.path))',
+        \)
+  execute printf(
+        \ 'Giit checkout %s %s %s %s -- %s',
         \ options.force ? '--force' : '',
         \ options.ours ? '--ours' : '',
         \ options.theirs ? '--theirs' : '',
-        \ giit#util#normalize#commit(git, options.commit),
-        \ '--',
-        \]
-  let args += map(
-        \ copy(a:candidates),
-        \ 'giit#util#normalize#relpath(git, v:val.path)',
+        \ options.commit,
+        \ join(pathlist),
         \)
-  let args = filter(args, '!empty(v:val)')
-  let result = git.execute(args)
-  if result.status
-    call giit#operation#inform(result, options)
-  endif
-  call giit#trigger_modified()
 endfunction

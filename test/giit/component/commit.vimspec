@@ -1,9 +1,16 @@
-Describe giit#operator#commit
-  Describe #cleanup()
+Describe giit#component#commit
+  Before all
+    let Path = vital#vital#import('System.Filepath')
+    let scope = themis#helper('scope')
+    let sfile = Path.realpath('autoload/giit/component/commit.vim')
+    let sf = scope.funcs(sfile)
+  End
+
+  Describe s:cleanup_commitmsg()
     It strips leading and trailing empty lines from {content}
       let mode = 'strip'
       let content = ['', '', '', 'a', 'b', 'c', '', '', '']
-      Assert Equals(giit#operator#commit#cleanup(content, mode), [
+      Assert Equals(sf.cleanup_commitmsg(content, mode), [
             \ 'a',
             \ 'b',
             \ 'c',
@@ -13,7 +20,7 @@ Describe giit#operator#commit
     It strips trailing whitespace from {content}
       let mode = 'strip'
       let content = ['  a  ', 'b  ', '  c']
-      Assert Equals(giit#operator#commit#cleanup(content, mode), [
+      Assert Equals(sf.cleanup_commitmsg(content, mode), [
             \ '  a',
             \ 'b',
             \ '  c',
@@ -23,7 +30,7 @@ Describe giit#operator#commit
     It strips commentary from {content} is {mode} is not "whitespace"
       let mode = 'strip'
       let content = ['Not a commentary', '# A commentary', 'Not # a commentary']
-      Assert Equals(giit#operator#commit#cleanup(content, mode), [
+      Assert Equals(sf.cleanup_commitmsg(content, mode), [
             \ 'Not a commentary',
             \ '',
             \ 'Not # a commentary',
@@ -33,7 +40,7 @@ Describe giit#operator#commit
     It collapse consecutiv empty lines
       let mode = 'strip'
       let content = ['a', '', 'b', '', '', 'c', '', '', '', 'd']
-      Assert Equals(giit#operator#commit#cleanup(content, mode), [
+      Assert Equals(sf.cleanup_commitmsg(content, mode), [
             \ 'a',
             \ '',
             \ 'b',

@@ -165,6 +165,7 @@ function! s:define_syntax() abort dict
   endif
 endfunction
 
+
 " Parse ----------------------------------------------------------------------
 let s:record_separator = '#GIITSEP#'
 let s:record_columns = ['%h', '%ar', '%an', '%s', '%d']

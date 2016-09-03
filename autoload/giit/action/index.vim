@@ -77,22 +77,15 @@ function! s:on_add(candidates, options) abort
   let options = extend({
         \ 'force': 0,
         \}, a:options)
-  let args = [
-        \ 'add',
-        \ '--ignore-errors',
-        \ options.force ? '--force' : '',
-        \ '--',
-        \]
-  let args += map(
+  let pathlist = map(
         \ copy(a:candidates),
-        \ 'giit#util#normalize#abspath(git, v:val.path)',
+        \ 'shellescape(git.abspath(v:val.path))',
         \)
-  let args = filter(args, '!empty(v:val)')
-  let result = git.execute(args)
-  if result.status
-    call giit#operation#throw(result)
-  endif
-  call giit#trigger_modified()
+  execute printf(
+        \ 'Giit add --quiet --ignore-errors %s -- %s',
+        \ options.force ? '--force' : '',
+        \ join(pathlist),
+        \)
 endfunction
 
 function! s:on_rm(candidates, options) abort
@@ -101,42 +94,29 @@ function! s:on_rm(candidates, options) abort
         \ 'cached': 0,
         \ 'force': 0,
         \}, a:options)
-  let args = [
-        \ 'rm',
-        \ '--ignore-unmatch',
-        \ options.cached ? '--cached' : '',
-        \ options.force ? '--force' : '',
-        \ '--',
-        \]
-  let args += map(
+  let pathlist = map(
         \ copy(a:candidates),
-        \ 'giit#util#normalize#abspath(git, v:val.path)',
+        \ 'shellescape(git.abspath(v:val.path))',
         \)
-  let args = filter(args, '!empty(v:val)')
-  let result = git.execute(args)
-  if result.status
-    call giit#operation#throw(result)
-  endif
-  call giit#trigger_modified()
+  execute printf(
+        \ 'Giit rm --quiet --ignore-unmatch %s %s -- %s',
+        \ options.force ? '--force' : '',
+        \ options.cached ? '--cached' : '',
+        \ join(pathlist),
+        \)
 endfunction
 
 function! s:on_reset(candidates, options) abort
   let git = giit#core#get_or_fail()
   let options = extend({}, a:options)
-  let args = [
-        \ 'reset',
-        \ '--',
-        \]
-  let args += map(
+  let pathlist = map(
         \ copy(a:candidates),
-        \ 'giit#util#normalize#relpath(git, v:val.path)',
+        \ 'shellescape(git.relpath(v:val.path))',
         \)
-  let args = filter(args, '!empty(v:val)')
-  let result = git.execute(args)
-  if result.status
-    call giit#operation#throw(result)
-  endif
-  call giit#trigger_modified()
+  execute printf(
+        \ 'Giit reset --quiet -- %s',
+        \ join(pathlist),
+        \)
 endfunction
 
 function! s:on_stage(candidates, options) abort dict
