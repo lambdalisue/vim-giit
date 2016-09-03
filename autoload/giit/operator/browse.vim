@@ -5,9 +5,17 @@ let s:GitTerm = vital#giit#import('Git.Term')
 let s:Exception = vital#giit#import('Vim.Exception')
 
 
+" browse [-m<mode>] [-o<opener>] [--selection=<selection>] [<commit>:<path>]
 function! giit#operator#browse#execute(git, args) abort
-  let path = a:args.get_p(1, '')
-  let mode = a:args.get('-m|--mode', empty(path) ? '^' : '_')
+  let args = a:args.clone()
+
+  let object = a:args.get_p(1, '')
+  let [commit, relpath] = giit#operator#split_object(object)
+  let commit = giit#operator#show#_normalize_commit(a:git, commit)
+  let object = giit#operator#build_object(commit, relpath)
+
+  let mode = args.pop('-m|--mode', empty(object) ? '^' : '_')
+
 endfunction
 
 

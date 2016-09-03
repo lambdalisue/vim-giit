@@ -1,6 +1,7 @@
 let s:GitTerm = vital#giit#import('Git.Term')
 
 
+" show [options] [<commit>:<path>]
 function! giit#operator#show#execute(git, args) abort
   let args = a:args.clone()
 
@@ -14,7 +15,6 @@ function! giit#operator#show#execute(git, args) abort
 
   return giit#operator#common#execute(a:git, args)
 endfunction
-
 
 " NOTE:
 " most of git command does not understand A...B type assignment so translate
@@ -31,4 +31,10 @@ function! s:normalize_commit(git, commit) abort
   else
     return a:commit
   endif
+endfunction
+
+
+" Protected ------------------------------------------------------------------
+function! giit#operator#show#_normalize_commit(...) abort
+  return call('s:normalize_commit', a:000)
 endfunction
