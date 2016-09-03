@@ -23,7 +23,6 @@ function! giit#util#selection#get_current_selection() abort
   return selection
 endfunction
 
-
 function! giit#util#selecton#to_string(selection) abort
   return join(map(a:selection 'string(v:val)'), '-')
 endfunction

@@ -5,44 +5,112 @@ let s:GitTerm = vital#giit#import('Git.Term')
 let s:Exception = vital#giit#import('Vim.Exception')
 
 
-" browse [-m<mode>] [-o<opener>] [--selection=<selection>] [<commit>:<path>]
+" browse [options] [<commit>] [<path>]
 function! giit#operator#browse#execute(git, args) abort
   let args = a:args.clone()
+  let mode = args.get('-m|--mode', '')
 
-  let object = a:args.get_p(1, '')
-  let [commit, relpath] = giit#operator#split_object(object)
-  let commit = giit#operator#show#_normalize_commit(a:git, commit)
-  let object = giit#operator#build_object(commit, relpath)
-
-  let mode = args.pop('-m|--mode', empty(object) ? '^' : '_')
-
-endfunction
-
-
-function! s:find_commit_meta(git, commit) abort
+  " Commit
+  let commit = a:args.get_p(1, '')
   let config = a:git.util.get_repository_config()
-  if a:commit =~# '^.\{-}\.\.\..*$'
-    let [lhs, rhs] = s:GitTerm.split_range(a:commit)
-    let lhs = empty(lhs) ? 'HEAD' : lhs
-    let rhs = empty(rhs) ? 'HEAD' : rhs
-    let remote = config.get_branch_remote(lhs)
-    let lhs = a:git.util.find_common_ancestor(lhs, rhs)
-  elseif a:commit =~# '^.\{-}\.\..*$'
-    let [lhs, rhs] = s:GitTerm.split_range(a:commit)
-    let lhs = empty(lhs) ? 'HEAD' : lhs
-    let rhs = empty(rhs) ? 'HEAD' : rhs
-    let remote = config.get_branch_remote(lhs)
+  if commit =~# '^.\{-}\.\.\..*$'
+    let [commit1, commit2] = s:GitTerm.split_range(commit)
+    let commit1 = empty(commit1) ? 'HEAD' : commit1
+    let commit2 = empty(commit2) ? 'HEAD' : commit2
+    let remote = config.get_branch_remote(commit1)
+    let commit1 = a:git.util.find_common_ancestor(commit1, commit2)
+  elseif commit =~# '^.\{-}\.\..*$'
+    let [commit1, commit2] = s:GitTerm.split_range(commit)
+    let commit1 = empty(commit1) ? 'HEAD' : commit1
+    let commit2 = empty(commit2) ? 'HEAD' : commit2
+    let remote = config.get_branch_remote(commit1)
   else
-    let lhs = empty(a:commit) ? 'HEAD' : a:commit
-    let rhs = ''
-    let remote = config.get_branch_remote(lhs)
+    let commit1 = empty(commit) ? 'HEAD' : commit
+    let commit2 = ''
+    let remote = config.get_branch_remote(commit1)
   endif
   let remote = empty(remote) ? 'origin' : remote
   let remote_url = config.get_remote_url(remote)
   let remote_url = empty(remote_url)
         \ ? config.get_remote_url('origin')
         \ : remote_url
-  return [lhs, rhs, remote, remote_url]
+  let rev1 = a:git.get_remote_hash(remote, commit1)
+  let rev2 = a:git.get_remote_hash(remote, commit2)
+
+  " Path
+  let relpath = a:git.get_p(2, '')
+  let relpath = s:Path.unixpath(a:git.relpath(relpath))
+
+  " Get selected region
+  let selection = giit#util#selection#parse(a:git.get('--selection'))
+  let line_start = get(selection, 0, 0)
+  let line_end   = get(selection, 1, 0)
+  let line_end   = line_start == line_end ? 0 : line_end
+
+  " create a URL
+  let data = {
+        \ 'path':       relpath,
+        \ 'commit1':    commit1,
+        \ 'commit2':    commit2,
+        \ 'revision1':  rev1,
+        \ 'revision2':  rev2,
+        \ 'remote':     remote,
+        \ 'line_start': line_start,
+        \ 'line_end':   line_end,
+        \}
+  let format_map = {
+        \ 'pt': 'path',
+        \ 'c1': 'commit1',
+        \ 'c2': 'commit2',
+        \ 'r1': 'rev1',
+        \ 'r2': 'rev2',
+        \ 'ls': 'line_start',
+        \ 'le': 'line_end',
+        \}
+  let translation_patterns = extend(
+        \ deepcopy(g:giit#operator#browse#translation_patterns),
+        \ g:giit#operator#browse#extra_translation_patterns,
+        \)
+  let url = s:translate_url(
+        \ remote_url,
+        \ empty(relpath) ? '^' : mode,
+        \ translation_patterns,
+        \ empty(relpath),
+        \)
+  if empty(url)
+    throw s:Exception.warn(printf(
+          \ 'Warning: No url translation pattern for "%s:%s" is found.',
+          \ remote, commit1,
+          \))
+  endif
+  return s:Formatter.format(url, format_map, data)
+endfunction
+
+
+function! s:find_commit_meta(git, commit) abort
+  let config = a:git.util.get_repository_config()
+  if a:commit =~# '^.\{-}\.\.\..*$'
+    let [commit1, commit2] = s:GitTerm.split_range(a:commit)
+    let commit1 = empty(commit1) ? 'HEAD' : commit1
+    let commit2 = empty(commit2) ? 'HEAD' : commit2
+    let remote = config.get_branch_remote(commit1)
+    let commit1 = a:git.util.find_common_ancestor(commit1, commit2)
+  elseif a:commit =~# '^.\{-}\.\..*$'
+    let [commit1, commit2] = s:GitTerm.split_range(a:commit)
+    let commit1 = empty(commit1) ? 'HEAD' : commit1
+    let commit2 = empty(commit2) ? 'HEAD' : commit2
+    let remote = config.get_branch_remote(commit1)
+  else
+    let commit1 = empty(a:commit) ? 'HEAD' : a:commit
+    let commit2 = ''
+    let remote = config.get_branch_remote(commit1)
+  endif
+  let remote = empty(remote) ? 'origin' : remote
+  let remote_url = config.get_remote_url(remote)
+  let remote_url = empty(remote_url)
+        \ ? config.get_remote_url('origin')
+        \ : remote_url
+  return [commit1, commit2, remote, remote_url]
 endfunction
 
 function! s:translate_url(url, scheme_name, translation_patterns, repository) abort
