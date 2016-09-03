@@ -111,7 +111,8 @@ function! s:init(args) abort
     setlocal modifiable
   endif
 
-  nnoremap <buffer><silent> <Plug>(giit-commit) :<C-u>call <SID>commit_commitmsg()<CR>
+  nnoremap <buffer><silent> <Plug>(giit-commit)
+        \ :<C-u>call <SID>commit_commitmsg(giit#core#require(), giit#meta#require('args'))<CR>
   nmap <buffer> <C-c><C-c>  <Plug>(giit-commit)
 endfunction
 
