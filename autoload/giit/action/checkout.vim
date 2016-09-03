@@ -65,7 +65,7 @@ function! s:on_checkout(candidates, options) abort
         \ 'shellescape(git.relpath(v:val.path))',
         \)
   execute printf(
-        \ 'Giit checkout %s %s %s %s -- %s',
+        \ 'Giit checkout --quiet %s %s %s %s -- %s',
         \ options.force ? '--force' : '',
         \ options.ours ? '--ours' : '',
         \ options.theirs ? '--theirs' : '',

@@ -57,7 +57,7 @@ function! giit#operator#discard#perform(git, candidates, options) abort
         \ 'shellescape(a:git.relpath(giit#expand(v:val)))',
         \)
   execute printf(
-        \ 'Giit checkout --force HEAD -- %s',
+        \ 'Giit checkout --quiet --force HEAD -- %s',
         \ join(pathlist),
         \)
 endfunction
