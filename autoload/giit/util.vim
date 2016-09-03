@@ -57,10 +57,6 @@ function! s:syncbind() abort
   syncbind
 endfunction
 
-function! giit#util#slug() abort
-  return 'matchstr(expand(''<sfile>''), ''\zs[^. ]\+$'')'
-endfunction
-
 function! giit#util#collapse(list) abort
   return filter(s:List.flatten(a:list), '!empty(v:val)')
 endfunction

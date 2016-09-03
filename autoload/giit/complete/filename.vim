@@ -11,7 +11,7 @@ function! giit#complete#filename#any(arglead, cmdline, cursorpos) abort
 endfunction
 
 function! giit#complete#filename#tracked(arglead, cmdline, cursorpos) abort
-  let slug = eval(giit#util#slug())
+  let slug = eval(giit#complete#get_slug_expr())
   let git = giit#core#require()
   let candidates = git.core.get_cached_content(slug, 'index', [])
   if empty(candidates)
@@ -22,7 +22,7 @@ function! giit#complete#filename#tracked(arglead, cmdline, cursorpos) abort
 endfunction
 
 function! giit#complete#filename#cached(arglead, cmdline, cursorpos) abort
-  let slug = eval(giit#util#slug())
+  let slug = eval(giit#complete#get_slug_expr())
   let git = giit#core#require()
   let candidates = git.core.get_cached_content(slug, 'index', [])
   if empty(candidates)
@@ -33,7 +33,7 @@ function! giit#complete#filename#cached(arglead, cmdline, cursorpos) abort
 endfunction
 
 function! giit#complete#filename#deleted(arglead, cmdline, cursorpos) abort
-  let slug = eval(giit#util#slug())
+  let slug = eval(giit#complete#get_slug_expr())
   let git = giit#core#require()
   let candidates = git.core.get_cached_content(slug, 'index', [])
   if empty(candidates)
@@ -44,7 +44,7 @@ function! giit#complete#filename#deleted(arglead, cmdline, cursorpos) abort
 endfunction
 
 function! giit#complete#filename#modified(arglead, cmdline, cursorpos) abort
-  let slug = eval(giit#util#slug())
+  let slug = eval(giit#complete#get_slug_expr())
   let git = giit#core#require()
   let candidates = git.core.get_cached_content(slug, 'index', [])
   if empty(candidates)

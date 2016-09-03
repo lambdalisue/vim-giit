@@ -27,3 +27,7 @@ function! giit#complete#filter(arglead, candidates, ...) abort
   call filter(candidates, 'v:val =~# pattern')
   return candidates
 endfunction
+
+function! giit#complete#get_slug_expr() abort
+  return 'matchstr(expand(''<sfile>''), ''\zs[^. ]\+$'')'
+endfunction
