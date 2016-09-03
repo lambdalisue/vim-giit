@@ -1,9 +1,9 @@
+let s:Path = vital#giit#import('System.Filepath')
 let s:String = vital#giit#import('Data.String')
 let s:Anchor = vital#giit#import('Vim.Buffer.Anchor')
 let s:Observer = vital#giit#import('Vim.Buffer.Observer')
 let s:Action = vital#giit#import('Action')
 let s:Selector = vital#giit#import('Selector')
-let s:Chunker = vital#giit#import('Data.List.Chunker')
 let s:Argument = vital#giit#import('Argument')
 let s:Exception = vital#giit#import('Vim.Exception')
 
@@ -12,19 +12,26 @@ function! giit#component#status#autocmd(event) abort
   return call('s:on_' . a:event, [])
 endfunction
 
+function! giit#component#status#options(git, args) abort
+  let options = {}
+  let options.group     = 'selector'
+  let options.opener    = a:args.pop('-o|--opener', 'botright 15split')
+  let options.selection = []
+  return options
+endfunction
 
 " autocmd --------------------------------------------------------------------
 function! s:on_BufReadCmd() abort
   call s:Exception.register(function('s:exception_handler'))
   let git = giit#core#get_or_fail()
   let args = s:adjust(git, expand('<afile>'))
-  let result = giit#operation#status#execute(git, args)
+  let result = giit#operator#execute(git, args)
   if result.status
-    call giit#operation#throw(result)
+    throw giit#operator#error(result)
   endif
-  call giit#meta#set('args', args)
+
   call s:init(args)
-  let candidates = giit#operation#status#parse(git, result.content)
+  let candidates = s:parse_content(git, result.content)
   let selector = s:Selector.get()
   call selector.assign_candidates(candidates)
   call selector.define_syntax()
@@ -32,10 +39,17 @@ function! s:on_BufReadCmd() abort
 endfunction
 
 
-" private --------------------------------------------------------------------
+" Private --------------------------------------------------------------------
 function! s:adjust(git, bufname) abort
   let args = giit#meta#get('args', s:Argument.new())
-  let args.options = get(args, 'options', {})
+  let args = args.clone()
+  call args.set_p(0, 'status')
+  call args.set('--porcelain', 1)
+  call args.set('--no-column', 1)
+  call args.pop('-s|--short')
+  call args.pop('-b|--branch')
+  call args.pop('--long')
+  call args.pop('--column')
   return args.lock()
 endfunction
 
@@ -63,15 +77,6 @@ function! s:init(args) abort
         \ 'open', 'diff',
         \ 'index', 'checkout', 'discard',
         \])
-  call action.smart_map('n', '<Return>', '<Plug>(giit-edit)')
-  call action.smart_map('n', 'ee', '<Plug>(giit-edit)')
-  call action.smart_map('n', 'EE', '<Plug>(giit-edit-right)')
-  call action.smart_map('n', 'dd', '<Plug>(giit-diff)', '0D')
-  call action.smart_map('n', 'ds', '<Plug>(giit-diff-split)')
-  call action.smart_map('nv', '<<', '<Plug>(giit-index-stage)')
-  call action.smart_map('nv', '>>', '<Plug>(giit-index-unstage)')
-  call action.smart_map('nv', '--', '<Plug>(giit-index-toggle)')
-  call action.smart_map('nv', '==', '<Plug>(giit-index-discard)')
 
   setlocal buftype=nofile nobuflisted
   setlocal filetype=giit-status
@@ -141,4 +146,48 @@ function! s:define_syntax() abort dict
           \ escape(pattern, '/'),
           \)
   endif
+endfunction
+
+
+" Parser ---------------------------------------------------------------------
+let s:record_pattern =
+      \ '^\(..\) \("[^"]\{-}"\|.\{-}\)\%( -> \("[^"]\{-}"\|[^ ]\+\)\)\?$'
+
+function! s:parse_content(git, content) abort
+  let prefix = a:git.worktree . s:Path.separator()
+  let candidates = map(copy(a:content), 's:parse_record(prefix, v:val)')
+  call filter(candidates, '!empty(v:val)')
+  call sort(candidates, function('s:compare_candidate'))
+  return candidates
+endfunction
+
+function! s:parse_record(prefix, record) abort
+  let m = matchlist(a:record, s:record_pattern)
+  if len(m) && !empty(m[3])
+    return {
+          \ 'word': a:record,
+          \ 'sign': m[1],
+          \ 'path': a:prefix . s:strip_quotes(m[3]),
+          \ 'path1': a:prefix . s:strip_quotes(m[2]),
+          \ 'path2': a:prefix . s:strip_quotes(m[3]),
+          \}
+  elseif len(m) && !empty(m[2])
+    return {
+          \ 'word': a:record,
+          \ 'sign': m[1],
+          \ 'path': a:prefix . s:strip_quotes(m[2]),
+          \ 'path1': a:prefix . s:strip_quotes(m[2]),
+          \ 'path2': '',
+          \}
+  else
+    return {}
+  endif
+endfunction
+
+function! s:compare_candidate(a, b) abort
+  return a:a.path == a:b.path ? 0 : a:a.path > a:b.path ? 1 : -1
+endfunction
+
+function! s:strip_quotes(str) abort
+  return a:str =~# '^\%(".*"\|''.*''\)$' ? a:str[1:-2] : a:str
 endfunction

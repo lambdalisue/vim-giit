@@ -8,28 +8,33 @@ Support: Vim 8.0 and above
 =============================================================================
 STRUCTURE					*giit-develop-structure*
 
+>
 The following ASCII represents events and functions call chain used in giit's
 eco-system.
 >
-	Command =---------------> operation#command ---*
+	Command =---------------> command#command -----+
 	            (<q-args>)            |            |
 	                                  | (args)     |
 	                                  v            |
-	   *--------------- component#{scheme}#open    | (args)
-	   |      (bufname)                            |
-	   |                                           |
-	   v                                           |
-	Autocmd =---------------> component#autocmd <--*
+	   +----------------------- component#open     | (args)
+	   |      (bufname)               :            |
+	   |                              : (args)     |
+	   v                              v            |
+	Autocmd =---------------> component#autocmd    |
 	            (bufname)             |            |
-	                                  | (args)     |
+	                                  |            |
+	##################################|############|########
+	                                  |            |
 	                                  |            v
-	                                  *--> operation#execute
+	Other =---------------------------+--> operation#execute
+
+
 
 And the following table describe the detail about each layers.
 
 	Layer name		Description ~
 	
-	operation#command	It recieves <q-args> from |:Giit| command and
+	command#command		It recieves <q-args> from |:Giit| command and
 				parse to constructs an "args" instance. Then
 				it calls:
 				1. "operation#execute" to execute a git
@@ -43,14 +48,6 @@ And the following table describe the detail about each layers.
 				function, it calls that function and let that
 				function to perform one of a step above.
 				Otherwise it perform a step (1.) with a plain
-				"args" instance.
-	
-	operation#execute	It recieves an "args" instance and executes a
-				corresponding git command.
-				When there is an operation#{scheme}#execute
-				function, it calls that function and let that
-				function to perform a git command. Otherwise
-				it perform a git command directly from an
 				"args" instance.
 	
 	component#bufname	It recieves an "args" instance and constructs
@@ -70,6 +67,14 @@ And the following table describe the detail about each layers.
 				function.It calls that function and let that
 				function to perform the process described
 				above.
+
+	operation#execute	It recieves an "args" instance and executes a
+				corresponding git command.
+				When there is an operation#{scheme}#execute
+				function, it calls that function and let that
+				function to perform a git command. Otherwise
+				it perform a git command directly from an
+				"args" instance.
 
 
 

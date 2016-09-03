@@ -90,20 +90,36 @@ function! s:_default_handler(exception) abort
     let category = m[1]
     let message = m[2]
     if category ==# 'Info'
-      call s:Prompt.echo('None', message)
+      redraw
+      for line in split(message, '\r\?\n')
+        call s:Prompt.echo('None', line)
+      endfor
       call s:Prompt.debug(v:throwpoint)
       return 1
     elseif category ==# 'Warning'
-      call s:Prompt.warn(message)
+      redraw
+      for line in split(message, '\r\?\n')
+        call s:Prompt.warn(line)
+      endfor
       call s:Prompt.debug(v:throwpoint)
       return 1
     elseif category ==# 'Error'
-      call s:Prompt.error(message)
-      call s:Prompt.debug(v:throwpoint)
+      redraw
+      for line in split(message, '\r\?\n')
+        call s:Prompt.error(line)
+      endfor
+      for line in split(v:throwpoint, '\r\?\n')
+        call s:Prompt.debug(line)
+      endfor
       return 1
     elseif category ==# 'Critical'
-      call s:Prompt.debug(message)
-      call s:Prompt.debug(v:throwpoint)
+      redraw
+      for line in split(message, '\r\?\n')
+        call s:Prompt.debug(line)
+      endfor
+      for line in split(v:throwpoint, '\r\?\n')
+        call s:Prompt.debug(line)
+      endfor
     endif
     throw message
   endif

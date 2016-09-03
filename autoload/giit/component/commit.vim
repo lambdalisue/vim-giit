@@ -1,5 +1,3 @@
-let s:Dict = vital#giit#import('Data.Dict')
-let s:Path = vital#giit#import('System.Filepath')
 let s:Buffer = vital#giit#import('Vim.Buffer')
 let s:Anchor = vital#giit#import('Vim.Buffer.Anchor')
 let s:Observer = vital#giit#import('Vim.Buffer.Observer')
@@ -7,8 +5,17 @@ let s:Argument = vital#giit#import('Argument')
 let s:Exception = vital#giit#import('Vim.Exception')
 
 
+" Entry point ----------------------------------------------------------------
 function! giit#component#commit#autocmd(event) abort
   return call('s:on_' . a:event, [])
+endfunction
+
+function! giit#component#commit#options(git, args) abort
+  let options = {}
+  let options.group     = 'selector'
+  let options.opener    = a:args.pop('-o|--opener', 'botright 15split')
+  let options.selection = []
+  return options
 endfunction
 
 
@@ -17,40 +24,36 @@ function! s:on_BufReadCmd() abort
   call s:Exception.register(function('s:exception_handler'))
   let git = giit#core#get_or_fail()
   let args = s:adjust(git, expand('<afile>'))
-  let result = giit#operation#commit#execute(git, args)
-  if !args.options.dry_run
-    let result.status = !result.status
-  endif
-  if result.status
-    call giit#operation#throw(result)
-  endif
-  call giit#meta#set('args', args)
+  let content = s:get_commitmsg(git, args)
+
   call s:init(args)
-  call s:Buffer.edit_content(git.core.readfile('COMMIT_EDITMSG'))
+  call s:Buffer.edit_content(content)
   call giit#util#doautocmd('BufRead')
   setlocal filetype=giit-commit
 endfunction
 
 function! s:on_BufWriteCmd() abort
   let git = giit#core#get_or_fail()
-  let args = giit#meta#require('args')
-  let content = getline(1, '$')
-  call git.core.writefile(content, 'COMMIT_EDITMSG')
-  call s:set_working_commitmsg(git, args, giit#operation#commit#cleanup(
-        \ content, args.get('--cleanup', 'strip')
-        \))
+  let args = s:adjust(git, expand('<afile>'))
+  call s:set_commitmsg(git, args, getline(1, '$'))
   setlocal nomodified
 endfunction
 
 
-" private --------------------------------------------------------------------
+" Private --------------------------------------------------------------------
 function! s:adjust(git, bufname) abort
   let extra  = matchstr(a:bufname, '^giit:[^:]\+:[^:]\+:\zs[^/]\+')
 
   let args = giit#meta#get('args', s:Argument.new())
-  let args.options = get(args, 'options', {})
-  let args.options.edit = 1
-  let args.options.amend = extra =~# '\<amend\>'
+  let args = args.clone()
+  call args.set_p(0, 'commit')
+  call args.set('-e|--edit', 1)
+  call args.set('--amend', extra =~# '\<amend\>')
+  call args.pop('--short')
+  call args.pop('--branch')
+  call args.pop('--porcelain')
+  call args.pop('--long')
+  call args.pop('--no-edit')
   return args.lock()
 endfunction
 
@@ -71,7 +74,7 @@ function! s:init(args) abort
   augroup END
 
   setlocal buftype=acwrite nobuflisted
-  if a:args.options.dry_run
+  if a:args.get('--dry-run')
     setlocal nomodifiable
   else
     setlocal modifiable
@@ -90,42 +93,95 @@ function! s:exception_handler(exception) abort
   return 0
 endfunction
 
-function! s:get_working_commitmsg(git, args) abort
-  let name = a:args.options.amend ? 'amend' : '_'
-  let cache = a:git.cache.get('WORKING_COMMIT_EDITMSG', {})
-  return get(cache, name, [])
-endfunction
-
-function! s:set_working_commitmsg(git, args, message) abort
-  let name = a:args.options.amend ? 'amend' : '_'
-  let cache = a:git.cache.get('WORKING_COMMIT_EDITMSG', {})
-  let cache[name] = a:message
-  call a:git.cache.set('WORKING_COMMIT_EDITMSG', cache)
-endfunction
-
-function! s:commit_commitmsg() abort
-  let git = giit#core#get_or_fail()
-  let args = giit#meta#require('args')
-  let clone = args.clone()
-  let clone.options = s:Dict.omit(args.options, [
-        \ 'message',
-        \])
-  let clone.options.file = git.core.expand('COMMIT_EDITMSG')
-  let clone.options.edit = 0
-  let result = giit#operation#commit#execute(git, clone)
-  if result.status
-    call giit#operation#throw(result)
+function! s:cleanup_commitmsg(content, mode, ...) abort
+  let comment = get(a:000, 0, '#')
+  let content = copy(a:content)
+  if a:mode =~# '^\%(default\|strip\|whitespace\)$'
+    " Strip leading and trailing empty lines
+    let content = split(
+          \ substitute(join(content, "\n"), '^\n\+\|\n\+$', '', 'g'),
+          \ "\n"
+          \)
+    " Strip trailing whitespace
+    call map(content, 'substitute(v:val, ''\s\+$'', '''', '''')')
+    " Strip commentary
+    if a:mode =~# '^\%(default\|strip\)$'
+      call map(content, printf('v:val =~# ''^%s'' ? '''' : v:val', comment))
+    endif
+    " Collapse consecutive empty lines
+    let indices = range(len(content))
+    let status = ''
+    for index in reverse(indices)
+      if empty(content[index]) && status ==# 'consecutive'
+        call remove(content, index)
+      else
+        let status = empty(content[index]) ? 'consecutive' : ''
+      endif
+    endfor
   endif
-  call giit#operation#inform(result)
-  call git.cache.remove('WORKING_COMMIT_EDITMSG')
-  edit
+  return content
 endfunction
 
 function! s:get_commitmsg(git, args) abort
   let args = a:args.clone()
-  let args.options = copy(a:args.options)
-  call args.set('-m|--message', join(
-        \ s:get_working_commitmsg(a:git, args),
-        \ "\n"
-        \))
+  let cache = a:git.cache.get('WORKING_COMMIT_EDITMSG', {})
+  let cname = args.get('--amend') ? 'amend' : '_'
+  let content = get(cache, cname, [])
+
+  let tempfile = tempname()
+  try
+    if !empty(content)
+      call writefile(content, tempfile)
+      call args.set('-F|--file', tempfile)
+      " Remove conflicting options
+      call args.pop('-C|--reuse-message')
+      call args.pop('-m|--message')
+    endif
+
+    let result = giit#operator#execute(a:git, args)
+    if !result.status
+      " NOTE: Operation should be fail while GIT_EDITOR=false
+      throw giit#operator#error(result)
+    endif
+    return a:git.core.readfile('COMMIT_EDITMSG')
+  finally
+    call delete(tempfile)
+  endtry
+endfunction
+
+function! s:set_commitmsg(git, args, content) abort
+  let args = a:args.clone()
+  let cache = a:git.cache.get('WORKING_COMMIT_EDITMSG', {})
+  let cname = args.get('--amend') ? 'amend' : '_'
+  let cache[cname] = s:cleanup_commitmsg(
+        \ a:content,
+        \ args.get('--cleanup', 'strip')
+        \)
+  call a:git.core.writefile(a:content, 'COMMIT_EDITMSG')
+  call a:git.cache.set('WORKING_COMMIT_EDITMSG', cache)
+endfunction
+
+function! s:commit_commitmsg(git, args) abort
+  let args = a:args.clone()
+  let content = s:cleanup_commitmsg(
+        \ a:git.core.readfile('COMMIT_EDITMSG'),
+        \ args.get('--cleanup', 'strip'),
+        \)
+  let tempfile = tempname()
+  try
+    call writefile(content, tempfile)
+    call args.set('-no--edit', 1)
+    call args.set('-F|--file', tempfile)
+    call args.pop('-C|--reuse-message')
+    call args.pop('-m|--message')
+    call args.pop('-e|--edit')
+    let result = giit#operator#execute(a:git, args)
+    if result.status
+      throw giit#operator#error(result)
+    endif
+    call a:git.cache.remove('WORKING_COMMIT_EDITMSG')
+    return result
+  finally
+    call delete(tempfile)
+  endtry
 endfunction

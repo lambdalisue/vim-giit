@@ -1,38 +1,60 @@
-let s:Guard = vital#giit#import('Vim.Guard')
-let s:Anchor = vital#giit#import('Vim.Buffer.Anchor')
-let s:Opener = vital#giit#import('Vim.Buffer.Opener')
+let s:Prompt = vital#giit#import('Vim.Prompt')
 let s:Exception = vital#giit#import('Vim.Exception')
 
-function! giit#component#open(git, args) abort
-  let scheme  = a:args.get_p(0, '')
-  let config  = giit#scheme#call(
-        \ scheme,
-        \ 'component#{}#build_config',
-        \ [a:git, a:args],
-        \)
-  let bufname  = giit#scheme#call(
-        \ scheme,
-        \ 'component#{}#build_bufname',
-        \ [a:git, a:args],
-        \)
 
-  call s:Anchor.focus_if_available(config.opener)
-  let guard = s:Guard.store(['&eventignore'])
+" Entry points ---------------------------------------------------------------
+function! giit#component#open(git, args) abort
+  let scheme = substitute(a:args.get_p(0, ''), '-', '_', 'g')
   try
-    set eventignore+=BufReadCmd
-    let context = s:Opener.open(bufname, config)
-  finally
-    call guard.restore()
+    return call(
+          \ printf('giit#component#%s#open', scheme),
+          \ [a:git, a:args]
+          \)
+  catch /^Vim\%((\a\+)\)\=:E117/
+    call s:Prompt.debug(v:exception)
+    call s:Prompt.debug(v:throwpoint)
   endtry
-  call giit#meta#set('args', a:args)
-  edit
-  call context.end()
+  return giit#component#common#open(a:git, a:args)
+endfunction
+
+function! giit#component#bufname(git, args) abort
+  let scheme = substitute(a:args.get_p(0, ''), '-', '_', 'g')
+  try
+    return call(
+          \ printf('giit#component#%s#bufname', scheme),
+          \ [a:git, a:args]
+          \)
+  catch /^Vim\%((\a\+)\)\=:E117/
+    call s:Prompt.debug(v:exception)
+    call s:Prompt.debug(v:throwpoint)
+  endtry
+  return giit#component#common#bufname(a:git, a:args)
+endfunction
+
+function! giit#component#options(git, args) abort
+  let scheme = substitute(a:args.get_p(0, ''), '-', '_', 'g')
+  try
+    return call(
+          \ printf('giit#component#%s#options', scheme),
+          \ [a:git, a:args]
+          \)
+  catch /^Vim\%((\a\+)\)\=:E117/
+    call s:Prompt.debug(v:exception)
+    call s:Prompt.debug(v:throwpoint)
+  endtry
+  return giit#component#common#options(a:git, a:args)
 endfunction
 
 function! giit#component#autocmd(event) abort
-  let scheme = matchstr(expand('<afile>'), 'giit:\%(//\)\?[^:]\+:\zs[^:/]\+\ze')
-  let fname  = giit#scheme#fname(scheme, 'component#{}#autocmd')
-  return s:Exception.call(function(fname), [a:event])
+  let scheme = matchstr(
+        \ expand('<afile>'),
+        \ 'giit:\%(//\)\?[^:]\+:\zs[^:/]\+\ze'
+        \)
+  let scheme = substitute(scheme, '-', '_', 'g')
+  return s:Exception.call(
+        \ printf('giit#component#%s#autocmd', scheme),
+        \ [a:event],
+        \)
 endfunction
 
 
@@ -49,21 +71,4 @@ function! giit#component#build_object(commit, filename) abort
   return empty(a:filename)
         \ ? a:commit
         \ : a:commit . ':' . a:filename
-endfunction
-
-
-" Fallback -------------------------------------------------------------------
-function! giit#component#build_config(git, args) abort
-  let config = {}
-  let config.group     = ''
-  let config.opener    = a:args.pop('-o|--opener', '')
-  let config.selection = a:args.pop('--selection', '')
-  return config
-endfunction
-
-function! giit#component#build_bufname(git, args) abort
-  let scheme  = a:args.pos_p(0, '')
-  let refname = fnamemodify(a:git.worktree, ':t')
-  let pattern = 'giit://%s:%s'
-  return printf(pattern, refname, scheme)
 endfunction
