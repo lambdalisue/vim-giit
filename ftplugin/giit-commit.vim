@@ -10,13 +10,7 @@ setlocal nowrap nofoldenable
 setlocal nonumber norelativenumber
 setlocal foldcolumn=0 colorcolumn=0
 
-nnoremap <buffer><silent>       <Plug>(giit-switch-status)
-      \ :<C-u>Giit status<CR>
+nnoremap <buffer><silent> <C-^> :<C-u>Giit status<CR>
 
-nnoremap <buffer><silent><expr> <Plug>(giit-toggle-amend)
-      \ bufname('%') =~# '\<amend\>'
-      \   ? ':<C-u>Giit commit<CR>'
-      \   : ':<C-u>Giit commit --amend<CR>'
-
-nmap <buffer><nowait> <C-^> <Plug>(giit-switch-status)
-nmap <buffer><nowait> <C-s> <Plug>(giit-toggle-amend)
+nmap <buffer><nowait> <C-s>      <Plug>(giit-commit-switch)
+nmap <buffer><nowait> <C-c><C-c> <Plug>(giit-commit)

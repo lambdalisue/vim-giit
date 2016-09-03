@@ -105,15 +105,13 @@ function! s:init(args) abort
   augroup END
 
   setlocal buftype=acwrite nobuflisted
-  if a:args.get('--dry-run')
-    setlocal nomodifiable
-  else
-    setlocal modifiable
-  endif
 
+  nnoremap <buffer><silent><expr> <Plug>(giit-commit-switch)
+        \ bufname('%') =~# '\<amend\>'
+        \   ? ':<C-u>Giit commit<CR>'
+        \   : ':<C-u>Giit commit --amend<CR>'
   nnoremap <buffer><silent> <Plug>(giit-commit)
         \ :<C-u>call <SID>commit_commitmsg(giit#core#require(), giit#meta#require('args'))<CR>
-  nmap <buffer> <C-c><C-c>  <Plug>(giit-commit)
 endfunction
 
 function! s:exception_handler(exception) abort
@@ -210,6 +208,10 @@ function! s:commit_commitmsg(git, args) abort
     let result = giit#operator#execute(a:git, args)
     call a:git.cache.remove('WORKING_COMMIT_EDITMSG')
     call giit#operator#inform(result)
+
+    if &filetype ==# 'giit-commit'
+      execute 'Giit status'
+    endif
   finally
     call delete(tempfile)
   endtry
