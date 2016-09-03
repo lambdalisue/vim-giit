@@ -15,14 +15,14 @@ let s:is_windows = has('win16') || has('win32') || has('win64')
 command! -nargs=* -bang -range
       \ -complete=customlist,giit#operation#complete
       \ Giit
-      \ call giit#operation#command(<q-args>, <q-bang>, [<line1>, <line2>])
+      \ call giit#operation#command(<q-bang>, [<line1>, <line2>], <q-args>)
 
 
 augroup giit-internal
   autocmd! *
   autocmd BufReadCmd giit:* nested call giit#component#autocmd('BufReadCmd')
+  " NOTE: autocmd for 'xxxxx:*' is trittered for 'xxxxx://' in Windows
   if !s:is_windows
-    " NOTE: autocmd for 'xxxxx:*' is trittered for 'xxxxx://' in Windows
     autocmd BufReadCmd giit:*/* nested call giit#component#autocmd('BufReadCmd')
   endif
 augroup END

@@ -10,6 +10,10 @@ function! giit#operation#command(...) abort
   return s:Exception.call(function('s:command'), a:000)
 endfunction
 
+function! giit#operation#execute(...) abort
+  return s:Exception.call(function('s:execute'), a:000)
+endfunction
+
 function! giit#operation#complete(...) abort
   return s:Exception.call(function('s:complete'), a:000)
 endfunction
@@ -32,45 +36,49 @@ endfunction
 
 
 " Private --------------------------------------------------------------------
-function! s:command(cmdline, bang, range) abort
-  let args = s:Argument.new(a:cmdline)
-  let args.options = {}
-  let args.options.name = args.pop_p(0)
-  let args.options.range = a:range
-  if a:bang !=# '!' && !empty(args.options.name)
-    let fname = giit#util#fname('operation', args.options.name, 'command')
+function! s:command(qbang, range, qargs) abort
+  let args   = s:Argument.new(a:qargs)
+  let scheme = args.get_p(0, '')
+  if a:qbang !=# '!' && !empty(scheme)
+    let fname  = giit#util#fname('operation', scheme, 'command')
     try
-      return call(fname, [args])
+      call call(fname, [a:range, a:qargs])
+      return
     catch /^Vim\%((\a\+)\)\=:E117/
       call s:Prompt.debug(v:exception)
       call s:Prompt.debug(v:throwpoint)
     endtry
   endif
-
-  let git = giit#core#get()
-  let args = s:Argument.new(a:cmdline)
-  let quiet = args.pop('-q|--quiet')
-  let interactive = args.pop('--interactive')
-  call args.map_p({ v -> v ==# '%' ? giit#expand(v) : v })
-  if interactive
-    let result = s:GitProcess.shell(git, args.raw, { 'stdout': 1 })
-  else
-    let result = s:GitProcess.execute(git, args.raw)
-  endif
-  if !quiet
+  let result = giit#operation#execute(args.lock())
+  if !args.get('-q|--quiet')
     call giit#operation#inform(result)
   endif
-  return result
+  return
+endfunction
+
+function! s:execute(git, args) abort
+  let scheme = a:args.get_p(0, '')
+  let fname  = giit#util#fname('operation', scheme, 'execute')
+  try
+    return call(fname, [a:git, a:args])
+  catch /^Vim\%((\a\+)\)\=:E117/
+    call s:Prompt.debug(v:exception)
+    call s:Prompt.debug(v:throwpoint)
+  endtry
+  let args   = a:args.clone()
+  let args   = args.map_p({ v -> v ==# '%' ? giit#expand(v) : v })
+  let method = s:is_interactive(args) ? 'shell' : 'execute'
+
+  return s:GitProcess[method](a:git, args.raw, { 'stdout': 1 })
 endfunction
 
 function! s:complete(arglead, cmdline, cursorpos) abort
   call s:Exception.register(function('s:complete_exception_handler'))
-
   let cmdline = matchstr(a:cmdline, '^\w\+ \zs.*\ze .*$')
-  let args = s:Argument.new(cmdline)
-  let name = args.pop_p(0)
-  if a:cmdline !~# '^\w\+!' && !empty(name)
-    let fname = giit#util#fname('operation', name, 'complete')
+  let args    = s:Argument.new(cmdline)
+  let scheme  = args.get_p(0, '')
+  if a:cmdline !~# '^\w\+!' && !empty(scheme)
+    let fname   = giit#util#fname('operation', scheme, 'complete')
     try
       return call(fname, [a:arglead, a:cmdline, a:cursorpos])
     catch /^Vim\%((\a\+)\)\=:E117/
@@ -92,4 +100,15 @@ function! s:complete_exception_handler(exception) abort
   call s:Prompt.debug(v:exception)
   call s:Prompt.debug(v:throwpoint)
   return 1
+endfunction
+
+function! s:is_interactive(args) abort
+  if a:args.pop('--interactive')
+    return 1
+  elseif a:args.get_p(0, '') =~# '^\%(clone\|fetch\|push\|pull\|checkout\)$'
+    " Command which access to a remote may fail and ask users to fill them
+    " password so these command should be performed with :! instead.
+    return 1
+  endif
+  return 0
 endfunction

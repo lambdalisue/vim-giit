@@ -19,6 +19,43 @@ function! giit#trigger_modified() abort
   call giit#util#doautocmd('User', 'GiitModifiedPost')
 endfunction
 
+function! giit#command(bang, range, qargs) abort
+  let scheme = matchstr(a:qargs,  '^\w\+')
+  return s:Exception.call(
+        \ function('giit#scheme#call'),
+        \ [
+        \   scheme,
+        \   'operation#{}#command',
+        \   [a:bang, a:range, a:qargs]
+        \ ],
+        \)
+endfunction
+
+function! giit#execute(git, args) abort
+  let scheme = a:args.get_p(0, '')
+  return s:Exception.call(
+        \ function('giit#scheme#call'),
+        \ [
+        \   scheme,
+        \   'operation#{}#execute',
+        \   [a:git, a:args]
+        \ ],
+        \)
+endfunction
+
+function! giit#complete(git, args) abort
+  let scheme = a:args.get_p(0, '')
+  return s:Exception.call(
+        \ function('giit#scheme#call'),
+        \ [
+        \   scheme,
+        \   'operation#{}#execute',
+        \   [a:git, a:args]
+        \ ],
+        \)
+endfunction
+
+
 
 " Default variable -----------------------------------------------------------
 call s:Config.define('giit', {

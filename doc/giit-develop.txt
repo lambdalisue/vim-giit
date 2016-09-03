@@ -1,0 +1,83 @@
+*giit-develop.txt*			A giit development info
+
+Version: 0.1.0
+Author:  Alisue <lambdalisue@hashnote.net>
+Support: Vim 8.0 and above
+
+
+=============================================================================
+STRUCTURE					*giit-develop-structure*
+
+The following ASCII represents events and functions call chain used in giit's
+eco-system.
+>
+	Command =---------------> operation#command ---*
+	            (<q-args>)            |            |
+	                                  | (args)     |
+	                                  v            |
+	   *--------------- component#{scheme}#open    | (args)
+	   |      (bufname)                            |
+	   |                                           |
+	   v                                           |
+	Autocmd =---------------> component#autocmd <--*
+	            (bufname)             |            |
+	                                  | (args)     |
+	                                  |            v
+	                                  *--> operation#execute
+
+And the following table describe the detail about each layers.
+
+	Layer name		Description ~
+	
+	operation#command	It recieves <q-args> from |:Giit| command and
+				parse to constructs an "args" instance. Then
+				it calls:
+				1. "operation#execute" to execute a git
+				   command. Then it inform the result of the
+				   command execution.
+				2. "component#bufname" to create a component
+				   buffer name. Then it opens the component
+				   and let the component to perform further
+				   process.
+				When there is an operation{scheme}#command
+				function, it calls that function and let that
+				function to perform one of a step above.
+				Otherwise it perform a step (1.) with a plain
+				"args" instance.
+	
+	operation#execute	It recieves an "args" instance and executes a
+				corresponding git command.
+				When there is an operation#{scheme}#execute
+				function, it calls that function and let that
+				function to perform a git command. Otherwise
+				it perform a git command directly from an
+				"args" instance.
+	
+	component#bufname	It recieves an "args" instance and constructs
+				a component buffer name.
+				When there is a component#{scheme}#bufname
+				function, it calls that function and let that
+				function to construct a buffer name.
+				Otherwise it construct a non-file component
+				buffer name from {scheme}.
+
+	component#autocmd	It recieves a "bufname" through |autocmd| and
+				constructs an "args" instance. Then it calls
+				"operation#execute" and use the result to
+				construct the component content when for
+				|BufReadCmd|.
+				It requires a component#{scheme}#autocmd
+				function.It calls that function and let that
+				function to perform the process described
+				above.
+
+
+
+
+
+
+
+
+
+=============================================================================
+vim:tw=78:fo=tcq2mM:ts=8:ft=help:norl

@@ -7,6 +7,11 @@ function! giit#component#show#autocmd(event) abort
   return call('s:on_' . a:event, [])
 endfunction
 
+function! giit#component#show#build_config(git, args) abort
+  let config = giit#component#build_config(a:git, a:args)
+  return config
+endfunction
+
 
 " autocmd --------------------------------------------------------------------
 function! s:on_BufReadCmd() abort
