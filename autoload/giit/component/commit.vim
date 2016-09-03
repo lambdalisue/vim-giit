@@ -19,7 +19,7 @@ function! giit#component#commit#bufname(git, args) abort
   return bufname
 endfunction
 
-function! giit#component#commit#options(git, args) abort
+function! giit#component#commit#options(git, args, range) abort
   let options = {}
   let options.group     = 'selector'
   let options.opener    = a:args.pop('-o|--opener', 'botright 15split')

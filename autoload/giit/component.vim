@@ -3,18 +3,18 @@ let s:Exception = vital#giit#import('Vim.Exception')
 
 
 " Entry points ---------------------------------------------------------------
-function! giit#component#open(git, args) abort
+function! giit#component#open(git, args, range) abort
   let scheme = substitute(a:args.get_p(0, ''), '-', '_', 'g')
   try
     return call(
           \ printf('giit#component#%s#open', scheme),
-          \ [a:git, a:args]
+          \ [a:git, a:args, a:range]
           \)
   catch /^Vim\%((\a\+)\)\=:E117/
     call s:Prompt.debug(v:exception)
     call s:Prompt.debug(v:throwpoint)
   endtry
-  return giit#component#common#open(a:git, a:args)
+  return giit#component#common#open(a:git, a:args, a:range)
 endfunction
 
 function! giit#component#bufname(git, args) abort
@@ -31,18 +31,18 @@ function! giit#component#bufname(git, args) abort
   return giit#component#common#bufname(a:git, a:args)
 endfunction
 
-function! giit#component#options(git, args) abort
+function! giit#component#options(git, args, range) abort
   let scheme = substitute(a:args.get_p(0, ''), '-', '_', 'g')
   try
     return call(
           \ printf('giit#component#%s#options', scheme),
-          \ [a:git, a:args]
+          \ [a:git, a:args, a:range]
           \)
   catch /^Vim\%((\a\+)\)\=:E117/
     call s:Prompt.debug(v:exception)
     call s:Prompt.debug(v:throwpoint)
   endtry
-  return giit#component#common#options(a:git, a:args)
+  return giit#component#common#options(a:git, a:args, a:range)
 endfunction
 
 function! giit#component#autocmd(event) abort

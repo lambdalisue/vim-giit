@@ -22,7 +22,7 @@ function! giit#command#show#command(range, qargs) abort
   call args.set_p(1, object)
 
   " Open a corresponding component
-  call giit#component#open(git, args)
+  call giit#component#open(git, args, a:range)
 endfunction
 
 function! giit#command#show#complete(arglead, cmdline, cursorpos) abort

@@ -22,7 +22,7 @@ function! giit#command#diff#command(range, qargs) abort
   call args.set_p(2, relpath)
 
   " Open a corresponding component
-  call giit#component#open(git, args)
+  call giit#component#open(git, args, a:range)
 endfunction
 
 function! giit#command#diff#complete(arglead, cmdline, cursorpos) abort

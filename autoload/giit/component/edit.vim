@@ -2,10 +2,10 @@ let s:Opener = vital#giit#import('Vim.Buffer.Opener')
 let s:Anchor = vital#giit#import('Vim.Buffer.Anchor')
 
 
-function! giit#component#edit#open(git, args) abort
+function! giit#component#edit#open(git, args, range) abort
   let args = a:args.clone()
-  let bufname = giit#component#edit#bufname(a:git, args)
-  let options = giit#component#common#options(a:git, args)
+  let bufname = giit#component#bufname(a:git, args)
+  let options = giit#component#options(a:git, args, a:range)
   call args.lock()
 
   call s:Anchor.focus_if_available(options.opener)

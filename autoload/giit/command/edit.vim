@@ -8,7 +8,7 @@ function! giit#command#edit#command(range, qargs) abort
   let args = s:Argument.new(a:qargs)
 
   " Open a corresponding component
-  return giit#component#open(git, args)
+  return giit#component#open(git, args, a:range)
 endfunction
 
 function! giit#command#edit#complete(arglead, cmdline, cursorpos) abort

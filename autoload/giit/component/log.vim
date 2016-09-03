@@ -14,7 +14,7 @@ function! giit#component#log#autocmd(event) abort
   return call('s:on_' . a:event, [])
 endfunction
 
-function! giit#component#log#options(git, args) abort
+function! giit#component#log#options(git, args, range) abort
   let options = {}
   let options.group     = 'selector'
   let options.opener    = a:args.pop('-o|--opener', 'botright 15split')
