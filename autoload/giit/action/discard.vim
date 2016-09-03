@@ -16,7 +16,7 @@ endfunction
 
 
 function! s:on_discard(candidates, options) abort dict
-  let git = giit#core#get_or_fail()
+  let git = giit#core#require()
   let options = extend({
         \ 'force': 0,
         \}, a:options)

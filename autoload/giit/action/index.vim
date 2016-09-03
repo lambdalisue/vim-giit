@@ -73,7 +73,7 @@ function! giit#action#index#define(binder) abort
 endfunction
 
 function! s:on_add(candidates, options) abort
-  let git = giit#core#get_or_fail()
+  let git = giit#core#require()
   let options = extend({
         \ 'force': 0,
         \}, a:options)
@@ -89,7 +89,7 @@ function! s:on_add(candidates, options) abort
 endfunction
 
 function! s:on_rm(candidates, options) abort
-  let git = giit#core#get_or_fail()
+  let git = giit#core#require()
   let options = extend({
         \ 'cached': 0,
         \ 'force': 0,
@@ -107,7 +107,7 @@ function! s:on_rm(candidates, options) abort
 endfunction
 
 function! s:on_reset(candidates, options) abort
-  let git = giit#core#get_or_fail()
+  let git = giit#core#require()
   let options = extend({}, a:options)
   let pathlist = map(
         \ copy(a:candidates),

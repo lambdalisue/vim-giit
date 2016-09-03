@@ -27,7 +27,7 @@ endfunction
 " autocmd --------------------------------------------------------------------
 function! s:on_BufReadCmd() abort
   call s:Exception.register(function('s:exception_handler'))
-  let git = giit#core#get_or_fail()
+  let git = giit#core#require()
   let args = s:adjust(git, expand('<afile>'))
   let result = giit#operator#execute(git, args)
   if result.status

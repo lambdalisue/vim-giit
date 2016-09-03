@@ -5,7 +5,7 @@ let s:Argument = vital#giit#import('Argument')
 " Giit diff [options] [<commit>:<filename>]
 " Giit diff [options] [<commit>] [<filename>]
 function! giit#command#diff#command(range, qargs) abort
-  let git = giit#core#get_or_fail()
+  let git = giit#core#require()
   let args = s:Argument.new(a:qargs)
 
   if len(args.list_p()) < 3

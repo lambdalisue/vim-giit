@@ -29,7 +29,7 @@ endfunction
 
 
 function! s:on_edit(candidates, options) abort
-  let git = giit#core#get_or_fail()
+  let git = giit#core#require()
   let options = extend({
         \ 'opener': '',
         \}, a:options)
@@ -46,7 +46,7 @@ function! s:on_edit(candidates, options) abort
 endfunction
 
 function! s:on_show(candidates, options) abort
-  let git = giit#core#get_or_fail()
+  let git = giit#core#require()
   let options = extend({
         \ 'commit': '',
         \ 'opener': '',

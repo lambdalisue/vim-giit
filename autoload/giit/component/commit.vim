@@ -31,7 +31,7 @@ endfunction
 " autocmd --------------------------------------------------------------------
 function! s:on_BufReadCmd() abort
   call s:Exception.register(function('s:exception_handler'))
-  let git = giit#core#get_or_fail()
+  let git = giit#core#require()
   let args = s:adjust(git, expand('<afile>'))
   let content = s:get_commitmsg(git, args)
 
@@ -42,7 +42,7 @@ function! s:on_BufReadCmd() abort
 endfunction
 
 function! s:on_BufWriteCmd() abort
-  let git = giit#core#get_or_fail()
+  let git = giit#core#require()
   let args = s:adjust(git, expand('<afile>'))
   call s:set_commitmsg(git, args, getline(1, '$'))
   setlocal nomodified
@@ -50,7 +50,7 @@ endfunction
 
 function! s:_on_WinLeave() abort
   let s:params_on_winleave = {
-        \ 'git': giit#core#get_or_fail(),
+        \ 'git': giit#core#require(),
         \ 'args': giit#meta#require('args'),
         \ 'nwin': winnr('$'),
         \}

@@ -4,7 +4,7 @@ let s:Argument = vital#giit#import('Argument')
 " SYNOPSIS
 " Giit log [options]
 function! giit#command#log#command(range, qargs) abort
-  let git = giit#core#get_or_fail()
+  let git = giit#core#require()
   let args = s:Argument.new(a:qargs)
 
   " Open a corresponding component

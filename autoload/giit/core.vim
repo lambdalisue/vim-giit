@@ -15,7 +15,7 @@ function! giit#core#get(...) abort
   return get(s:refs, refinfo.refname, {})
 endfunction
 
-function! giit#core#get_or_fail(...) abort
+function! giit#core#require(...) abort
   let expr = get(a:000, 0, '%')
   let git = giit#core#get(expr)
   if !empty(git)

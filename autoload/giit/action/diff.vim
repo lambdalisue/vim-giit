@@ -19,7 +19,7 @@ endfunction
 
 
 function! s:on_diff(candidates, options) abort
-  let git = giit#core#get_or_fail()
+  let git = giit#core#require()
   let options = extend({
         \ 'commit': '',
         \ 'opener': '',

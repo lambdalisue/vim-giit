@@ -3,7 +3,7 @@ let s:String = vital#giit#import('Data.String')
 
 
 function! giit#complete#filename#any(arglead, cmdline, cursorpos) abort
-  let git = giit#core#get_or_fail()
+  let git = giit#core#require()
   let candidates = s:get_available_filenames(git, [
         \ '--cached', '--others', '--', a:arglead . '*',
         \])
@@ -12,7 +12,7 @@ endfunction
 
 function! giit#complete#filename#tracked(arglead, cmdline, cursorpos) abort
   let slug = eval(giit#util#slug())
-  let git = giit#core#get_or_fail()
+  let git = giit#core#require()
   let candidates = git.core.get_cached_content(slug, 'index', [])
   if empty(candidates)
     let candidates = s:get_available_filenames(git, [])
@@ -23,7 +23,7 @@ endfunction
 
 function! giit#complete#filename#cached(arglead, cmdline, cursorpos) abort
   let slug = eval(giit#util#slug())
-  let git = giit#core#get_or_fail()
+  let git = giit#core#require()
   let candidates = git.core.get_cached_content(slug, 'index', [])
   if empty(candidates)
     let candidates = s:get_available_filenames(git, ['--cached'])
@@ -34,7 +34,7 @@ endfunction
 
 function! giit#complete#filename#deleted(arglead, cmdline, cursorpos) abort
   let slug = eval(giit#util#slug())
-  let git = giit#core#get_or_fail()
+  let git = giit#core#require()
   let candidates = git.core.get_cached_content(slug, 'index', [])
   if empty(candidates)
     let candidates = s:get_available_filenames(git, ['--deleted'])
@@ -45,7 +45,7 @@ endfunction
 
 function! giit#complete#filename#modified(arglead, cmdline, cursorpos) abort
   let slug = eval(giit#util#slug())
-  let git = giit#core#get_or_fail()
+  let git = giit#core#require()
   let candidates = git.core.get_cached_content(slug, 'index', [])
   if empty(candidates)
     let candidates = s:get_available_filenames(git, ['--modified'])
@@ -55,7 +55,7 @@ function! giit#complete#filename#modified(arglead, cmdline, cursorpos) abort
 endfunction
 
 function! giit#complete#filename#others(arglead, cmdline, cursorpos) abort
-  let git = giit#core#get_or_fail()
+  let git = giit#core#require()
   let candidates = s:get_available_filenames(git, [
         \ '--others', '--', a:arglead . '*',
         \])
@@ -63,7 +63,7 @@ function! giit#complete#filename#others(arglead, cmdline, cursorpos) abort
 endfunction
 
 function! giit#complete#filename#unstaged(arglead, cmdline, cursorpos) abort
-  let git = giit#core#get_or_fail()
+  let git = giit#core#require()
   let candidates = s:get_available_filenames(git, [
         \ '--others', '--modified', '--', a:arglead . '*',
         \])
