@@ -1,7 +1,7 @@
-let s:GitTerm = vital#gita#import('Git.Term')
+let s:GitTerm = vital#giit#import('Git.Term')
 
 
-function! gita#operator#diff#execute(git, args) abort
+function! giit#operator#diff#execute(git, args) abort
   let args = a:args.clone()
 
   " git diff did not allow A...B type assignment in old version so translate

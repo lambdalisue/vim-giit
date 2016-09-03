@@ -18,6 +18,5 @@ nnoremap <buffer><silent><expr> <Plug>(giit-toggle-amend)
       \   ? ':<C-u>Giit commit<CR>'
       \   : ':<C-u>Giit commit --amend<CR>'
 
-
 nmap <buffer><nowait> <C-^> <Plug>(giit-switch-status)
 nmap <buffer><nowait> <C-s> <Plug>(giit-toggle-amend)

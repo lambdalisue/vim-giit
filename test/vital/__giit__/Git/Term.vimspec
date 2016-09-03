@@ -217,7 +217,7 @@ Describe Git.Term
             \)
       Assert Equals(
             \ GitTerm.split_treeish(':3:autoload/gita/core.vim', {}),
-            \ ['', 'autoload/gita/core.vim'],
+            \ ['', 'autoload/giit/core.vim'],
             \)
     End
 

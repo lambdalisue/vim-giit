@@ -10,6 +10,15 @@ function! giit#component#commit#autocmd(event) abort
   return call('s:on_' . a:event, [])
 endfunction
 
+function! giit#component#commit#bufname(git, args) abort
+  let bufname = giit#component#common#bufname(a:git, a:args)
+  let bufname = printf('%s%s',
+        \ bufname,
+        \ a:args.get('--amend') ? ':amend' : '',
+        \)
+  return bufname
+endfunction
+
 function! giit#component#commit#options(git, args) abort
   let options = {}
   let options.group     = 'selector'
@@ -37,6 +46,26 @@ function! s:on_BufWriteCmd() abort
   let args = s:adjust(git, expand('<afile>'))
   call s:set_commitmsg(git, args, getline(1, '$'))
   setlocal nomodified
+endfunction
+
+function! s:_on_WinLeave() abort
+  let s:params_on_winleave = {
+        \ 'git': giit#core#get_or_fail(),
+        \ 'args': giit#meta#require('args'),
+        \ 'nwin': winnr('$'),
+        \}
+endfunction
+
+function! s:_on_WinEnter() abort
+  if exists('s:params_on_winleave')
+    if winnr('$') < s:params_on_winleave.nwin
+      call s:commit_commitmsg(
+            \ s:params_on_winleave.git,
+            \ s:params_on_winleave.args,
+            \)
+    endif
+    unlet s:params_on_winleave
+  endif
 endfunction
 
 
@@ -71,6 +100,8 @@ function! s:init(args) abort
   augroup giit-internal-component-commit
     autocmd! * <buffer>
     autocmd BufWriteCmd <buffer> call s:on_BufWriteCmd()
+    autocmd WinLeave    <buffer> call s:_on_WinLeave()
+    autocmd WinEnter    *        call s:_on_WinEnter()
   augroup END
 
   setlocal buftype=acwrite nobuflisted
@@ -81,7 +112,7 @@ function! s:init(args) abort
   endif
 
   nnoremap <buffer><silent> <Plug>(giit-commit) :<C-u>call <SID>commit_commitmsg()<CR>
-  nmap <buffer> <C-c><C-c> <Plug>(giit-commit)
+  nmap <buffer> <C-c><C-c>  <Plug>(giit-commit)
 endfunction
 
 function! s:exception_handler(exception) abort
@@ -170,17 +201,14 @@ function! s:commit_commitmsg(git, args) abort
   let tempfile = tempname()
   try
     call writefile(content, tempfile)
-    call args.set('-no--edit', 1)
+    call args.set('--no-edit', 1)
     call args.set('-F|--file', tempfile)
     call args.pop('-C|--reuse-message')
     call args.pop('-m|--message')
     call args.pop('-e|--edit')
     let result = giit#operator#execute(a:git, args)
-    if result.status
-      throw giit#operator#error(result)
-    endif
     call a:git.cache.remove('WORKING_COMMIT_EDITMSG')
-    return result
+    call giit#operator#inform(result)
   finally
     call delete(tempfile)
   endtry

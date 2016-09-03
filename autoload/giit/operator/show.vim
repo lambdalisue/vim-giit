@@ -1,7 +1,7 @@
-let s:GitTerm = vital#gita#import('Git.Term')
+let s:GitTerm = vital#giit#import('Git.Term')
 
 
-function! gita#operator#show#execute(git, args) abort
+function! giit#operator#show#execute(git, args) abort
   let args = a:args.clone()
 
   " git show does not allow commit range so translate
