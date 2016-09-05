@@ -1,20 +1,23 @@
 let s:formatters = []
 
 
-function! giit#util#url#formatter#format(url, rev, path, params) abort
+function! giit#util#url#format(scheme, url, rev, path, params) abort
   for formatter in s:formatters
     let baseurl = formatter.baseurl
     for pattern in formatter.patterns
       if a:url =~# pattern
         let baseurl = formatter.baseurl
         let baseurl = substitute(a:url, pattern, baseurl, 'g')
-        return formatter.format(baseurl, a:rev, a:path, a:params)
+        return formatter.scheme[a:scheme](baseurl, a:rev, a:path, a:params)
       endif
     endfor
   endfor
   return ''
 endfunction
 
-function! giit#util#url#formatter#register(formatter) abort
+function! giit#util#url#register(formatter) abort
   call add(s:formatters, a:formatter)
 endfunction
+
+call giit#util#url#register(giit#util#url#github#define())
+call giit#util#url#register(giit#util#url#bitbucket#define())

@@ -9,12 +9,13 @@ let s:Exception = vital#giit#import('Vim.Exception')
 function! giit#operator#browse#execute(git, args) abort
   let args = a:args.clone()
 
+  let scheme    = args.get('-s|--scheme', '_')
   let commit    = args.get_p(1, '')
   let filename  = args.get_p(2, '')
-  let mode      = args.get('-m|--mode', '')
   let selection = giit#util#selection#parse(args.get('--selection', ''))
+  let exact     = args.get('-e|--exact')
 
-  let url = s:find_url(a:git, commit, filename, mode, selection)
+  let url = s:find_url(a:git, scheme, commit, filename, selection, exact)
   return {
         \ 'status': 0,
         \ 'success': 1,
@@ -25,54 +26,41 @@ function! giit#operator#browse#execute(git, args) abort
 endfunction
 
 
-function! s:find_url(git, commit, filename, mode, selection) abort
+function! s:find_url(git, scheme, commit, filename, selection, exact) abort
   let relpath = s:Path.unixpath(a:git.relpath(a:filename))
   " normalize commit to figure out remote, commit, and remote_url
   let [commit1, commit2, remote, remote_url] = s:find_commit_meta(a:git, a:commit)
   let revision1 = a:git.util.get_remote_hash(remote, commit1)
   let revision2 = a:git.util.get_remote_hash(remote, commit2)
 
+  " normalize selection to define line_start/line_end
   let line_start = get(a:selection, 0, 0)
   let line_end   = get(a:selection, 1, 0)
   let line_end   = line_start == line_end ? 0 : line_end
 
-  " create a URL
-  let data = {
-        \ 'path':       relpath,
-        \ 'commit1':    commit1,
-        \ 'commit2':    commit2,
-        \ 'revision1':  revision1,
-        \ 'revision2':  revision2,
-        \ 'remote':     remote,
+  let rev1 = a:exact ? revision1 : commit1
+  let rev2 = a:exact ? revision2 : commit2
+
+  let params = {
+        \ 'path': relpath,
+        \ 'rev1': rev1,
+        \ 'rev2': rev2,
+        \ 'revision1': revision1,
+        \ 'revision2': revision2,
+        \ 'commit1': commit1,
+        \ 'commit2': commit2,
+        \ 'remote': remote,
         \ 'line_start': line_start,
         \ 'line_end':   line_end,
         \}
-  let format_map = {
-        \ 'pt': 'path',
-        \ 'c1': 'commit1',
-        \ 'c2': 'commit2',
-        \ 'r1': 'revision1',
-        \ 'r2': 'revision2',
-        \ 'ls': 'line_start',
-        \ 'le': 'line_end',
-        \}
-  let translation_patterns = extend(
-        \ deepcopy(g:giit#operator#browse#translation_patterns),
-        \ g:giit#operator#browse#extra_translation_patterns,
-        \)
-  let url = s:translate_url(
-        \ remote_url,
-        \ empty(a:filename) ? '^' : a:mode,
-        \ translation_patterns,
-        \ empty(a:filename),
-        \)
+  let url = giit#util#url#format(a:scheme, remote_url, rev1, relpath, params)
   if empty(url)
     throw s:Exception.warn(printf(
-          \ 'Warning: No url translation pattern for "%s:%s" is found.',
-          \ remote, commit1,
+          \ 'Warning: No url translation pattern for "%s:%s" (%s) is found.',
+          \ remote, rev1, remote_url,
           \))
   endif
-  return s:Formatter.format(url, format_map, data)
+  return url
 endfunction
 
 function! s:find_commit_meta(git, commit) abort
@@ -100,52 +88,3 @@ function! s:find_commit_meta(git, commit) abort
         \ : remote_url
   return [commit1, commit2, remote, remote_url]
 endfunction
-
-function! s:translate_url(url, mode, translation_patterns, repository) abort
-  let symbol = a:repository ? '^' : '_'
-  for [domain, info] in items(a:translation_patterns)
-    for pattern in info[0]
-      let pattern = substitute(pattern, '\C' . '%domain', domain, 'g')
-      if a:url =~# pattern
-        let mode = get(info[1], a:mode, info[1][symbol])
-        let repl = substitute(a:url, '\C' . pattern, mode, 'g')
-        return repl
-      endif
-    endfor
-  endfor
-  return ''
-endfunction
-
-
-call s:Config.define('giit#operator#browse', {
-      \ 'translation_patterns': {
-      \   'github.com': [
-      \     [
-      \       '\vhttps?://(%domain)/(.{-})/(.{-})%(\.git)?$',
-      \       '\vgit://(%domain)/(.{-})/(.{-})%(\.git)?$',
-      \       '\vgit\@(%domain):(.{-})/(.{-})%(\.git)?$',
-      \       '\vssh://git\@(%domain)/(.{-})/(.{-})%(\.git)?$',
-      \     ], {
-      \       '^':     'https://\1/\2/\3/tree/%c1/',
-      \       '_':     'https://\1/\2/\3/blob/%c1/%pt%{#L|}ls%{-L|}le',
-      \       'exact': 'https://\1/\2/\3/blob/%r1/%pt%{#L|}ls%{-L|}le',
-      \       'blame': 'https://\1/\2/\3/blame/%c1/%pt%{#L|}ls%{-L|}le',
-      \     },
-      \   ],
-      \   'bitbucket.org': [
-      \     [
-      \       '\vhttps?://(%domain)/(.{-})/(.{-})%(\.git)?$',
-      \       '\vgit://(%domain)/(.{-})/(.{-})%(\.git)?$',
-      \       '\vgit\@(%domain):(.{-})/(.{-})%(\.git)?$',
-      \       '\vssh://git\@(%domain)/(.{-})/(.{-})%(\.git)?$',
-      \     ], {
-      \       '^':     'https://\1/\2/\3/branch/%c1/',
-      \       '_':     'https://\1/\2/\3/src/%c1/%pt%{#cl-|}ls',
-      \       'exact': 'https://\1/\2/\3/src/%r1/%pt%{#cl-|}ls',
-      \       'blame': 'https://\1/\2/\3/annotate/%c1/%pt',
-      \       'diff':  'https://\1/\2/\3/diff/%pt?diff1=%c1&diff2=%c2',
-      \     },
-      \   ],
-      \ },
-      \ 'extra_translation_patterns': {},
-      \})
