@@ -1,5 +1,5 @@
 let s:Path = vital#giit#import('System.Filepath')
-let s:Prompt = vital#giit#import('Vim.Prompt')
+let s:Console = vital#giit#import('Vim.Console')
 let s:Config = vital#giit#import('Data.Dict.Config')
 let s:Observer = vital#giit#import('Vim.Buffer.Observer')
 let s:Exception = vital#giit#import('Vim.Exception')
@@ -80,7 +80,7 @@ function! s:exception_handler(exception) abort
         \ '^vital: Git\.Term: ValidationError: \(.*\)',
         \)
   if !empty(m)
-    call s:Prompt.warn('giit: ' . m[1])
+    call s:Console.warn('giit: ' . m[1])
     return 1
   endif
   return 0
@@ -89,14 +89,14 @@ call s:Exception.register(
       \ function('s:exception_handler')
       \)
 
-" Prompt ---------------------------------------------------------------------
+" Console ---------------------------------------------------------------------
 function! s:prompt_is_batch() abort
   return g:giit#test
 endfunction
 function! s:prompt_is_debug() abort
   return g:giit#debug == -1 ? &verbose : g:giit#debug
 endfunction
-call s:Prompt.set_config({
+call s:Console.set_config({
       \ 'batch': function('s:prompt_is_batch'),
       \ 'debug': function('s:prompt_is_debug'),
       \})

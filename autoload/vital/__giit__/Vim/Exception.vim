@@ -1,13 +1,13 @@
 let s:handlers = []
 
 function! s:_vital_loaded(V) abort
-  let s:Prompt = a:V.import('Vim.Prompt')
+  let s:Console = a:V.import('Vim.Console')
   let s:Guard = a:V.import('Vim.Guard')
   call s:register(s:get_default_handler())
 endfunction
 
 function! s:_vital_depends() abort
-  return ['Vim.Prompt', 'Vim.Guard']
+  return ['Vim.Console', 'Vim.Guard']
 endfunction
 
 function! s:_throw(category, msg) abort
@@ -92,33 +92,33 @@ function! s:_default_handler(exception) abort
     if category ==# 'Info'
       redraw
       for line in split(message, '\r\?\n')
-        call s:Prompt.echo('None', line)
+        call s:Console.echo('None', line)
       endfor
-      call s:Prompt.debug(v:throwpoint)
+      call s:Console.debug(v:throwpoint)
       return 1
     elseif category ==# 'Warning'
       redraw
       for line in split(message, '\r\?\n')
-        call s:Prompt.warn(line)
+        call s:Console.warn(line)
       endfor
-      call s:Prompt.debug(v:throwpoint)
+      call s:Console.debug(v:throwpoint)
       return 1
     elseif category ==# 'Error'
       redraw
       for line in split(message, '\r\?\n')
-        call s:Prompt.error(line)
+        call s:Console.error(line)
       endfor
       for line in split(v:throwpoint, '\r\?\n')
-        call s:Prompt.debug(line)
+        call s:Console.debug(line)
       endfor
       return 1
     elseif category ==# 'Critical'
       redraw
       for line in split(message, '\r\?\n')
-        call s:Prompt.debug(line)
+        call s:Console.debug(line)
       endfor
       for line in split(v:throwpoint, '\r\?\n')
-        call s:Prompt.debug(line)
+        call s:Console.debug(line)
       endfor
     endif
     throw message

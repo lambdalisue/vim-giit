@@ -1,6 +1,6 @@
 Describe Vim.Exception
   Before
-    let Prompt = vital#giit#import('Vim.Prompt')
+    let Console = vital#giit#import('Vim.Console')
     let Exception = vital#giit#import('Vim.Exception')
     let prefix = '^vital: Vim\.Exception: '
   End
@@ -36,9 +36,9 @@ Describe Vim.Exception
     End
 
     It echos message part of {exception} if the category is Info
-      call Prompt.clear()
+      call Console.clear()
       call Exception.handle(Exception.info('foobar'))
-      let messages = join(Prompt.capture('messages'), "\n")
+      let messages = join(Console.capture('messages'), "\n")
       " NOTE:
       " 'echo' is used instead of 'echomsg' so no message should be appeared
       " on 'messages' command
@@ -46,16 +46,16 @@ Describe Vim.Exception
     End
 
     It echomsgs message part of {exception} if the category is Warning
-      call Prompt.clear()
+      call Console.clear()
       call Exception.handle(Exception.warn('foobar'))
-      let messages = join(Prompt.capture('messages'), "\n")
+      let messages = join(Console.capture('messages'), "\n")
       Assert Match(messages, '\<foobar\>')
     End
 
     It echomsgs message part of {exception} if the category is Error
-      call Prompt.clear()
+      call Console.clear()
       call Exception.handle(Exception.error('foobar'))
-      let messages = join(Prompt.capture('messages'), "\n")
+      let messages = join(Console.capture('messages'), "\n")
       Assert Match(messages, '\<foobar\>')
     End
 
@@ -97,9 +97,9 @@ Describe Vim.Exception
       function instance.test_funcref(...) abort
         throw s:Exception.error('foo')
       endfunction
-      call Prompt.clear()
+      call Console.clear()
       call Exception.call(instance.test_funcref, args, instance)
-      let messages = join(Prompt.capture('messages'), "\n")
+      let messages = join(Console.capture('messages'), "\n")
       Assert Match(messages, '\<foo\>')
     End
   End

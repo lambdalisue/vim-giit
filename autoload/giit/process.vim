@@ -1,4 +1,4 @@
-let s:Prompt = vital#giit#import('Vim.Prompt')
+let s:Console = vital#giit#import('Vim.Console')
 let s:Exception = vital#giit#import('Vim.Exception')
 let s:GitProcess = vital#giit#import('Git.Process')
 
@@ -18,10 +18,10 @@ endfunction
 function! giit#process#inform(result) abort
   redraw | echo
   if a:result.status
-    call s:Prompt.echo('WarningMsg', 'Fail: ' . join(a:result.args))
+    call s:Console.echo('WarningMsg', 'Fail: ' . join(a:result.args))
   endif
   for line in a:result.content
-    call s:Prompt.echo('None', line)
+    call s:Console.echo('None', line)
   endfor
 endfunction
 

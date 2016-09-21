@@ -1,4 +1,4 @@
-let s:Prompt = vital#giit#import('Vim.Prompt')
+let s:Console = vital#giit#import('Vim.Console')
 let s:Argument = vital#giit#import('Argument')
 let s:Exception = vital#giit#import('Vim.Exception')
 
@@ -31,8 +31,8 @@ function! giit#operator#execute(git, args) abort
           \ [a:git, a:args]
           \)
   catch /^Vim\%((\a\+)\)\=:E117/
-    call s:Prompt.debug(v:exception)
-    call s:Prompt.debug(v:throwpoint)
+    call s:Console.debug(v:exception)
+    call s:Console.debug(v:throwpoint)
   endtry
   return giit#process#execute(a:git, a:args)
 endfunction
@@ -49,8 +49,8 @@ function! s:command(bang, range, qargs) abort
             \ [a:range, a:qargs]
             \)
     catch /^Vim\%((\a\+)\)\=:E117/
-      call s:Prompt.debug(v:exception)
-      call s:Prompt.debug(v:throwpoint)
+      call s:Console.debug(v:exception)
+      call s:Console.debug(v:throwpoint)
     endtry
   endif
 
@@ -78,15 +78,15 @@ function! s:complete(arglead, cmdline, cursorpos) abort
             \ [a:arglead, a:cmdline, a:cursorpos]
             \)
     catch /^Vim\%((\a\+)\)\=:E117/
-      call s:Prompt.debug(v:exception)
-      call s:Prompt.debug(v:throwpoint)
+      call s:Console.debug(v:exception)
+      call s:Console.debug(v:throwpoint)
     endtry
   endif
   return []
 endfunction
 
 function! s:complete_exception_handler(exception) abort
-  call s:Prompt.debug(v:exception)
-  call s:Prompt.debug(v:throwpoint)
+  call s:Console.debug(v:exception)
+  call s:Console.debug(v:throwpoint)
   return 1
 endfunction
