@@ -1,51 +1,92 @@
 let s:Prompt = vital#giit#import('Vim.Prompt')
+let s:Argument = vital#giit#import('Argument')
 let s:Exception = vital#giit#import('Vim.Exception')
 
+
+function! giit#operator#autocmd(event) abort
+  let scheme = matchstr(
+        \ expand('<afile>'),
+        \ 'giit:\%(//\)\?[^:]\+:\zs[^:/]\+\ze'
+        \)
+  let scheme = substitute(scheme, '-', '_', 'g')
+  return s:Exception.call(
+        \ printf('giit#component#%s#buffer#%s', scheme, a:event),
+        \ [],
+        \)
+endfunction
+
+function! giit#operator#command(...) abort
+  return s:Exception.call(function('s:command'), a:000)
+endfunction
+
+function! giit#operator#complete(...) abort
+  return s:Exception.call(function('s:complete'), a:000)
+endfunction
 
 function! giit#operator#execute(git, args) abort
   let scheme = substitute(a:args.get_p(0, ''), '-', '_', 'g')
   try
     return call(
-          \ printf('giit#operator#%s#execute', scheme),
+          \ printf('giit#component#%s#process#execute', scheme),
           \ [a:git, a:args]
           \)
   catch /^Vim\%((\a\+)\)\=:E117/
     call s:Prompt.debug(v:exception)
     call s:Prompt.debug(v:throwpoint)
   endtry
-  return giit#operator#common#execute(a:git, a:args)
+  return giit#process#execute(a:git, a:args)
 endfunction
 
 
-" Utility --------------------------------------------------------------------
-function! giit#operator#inform(result) abort
-  redraw | echo
-  if a:result.status
-    call s:Prompt.echo('WarningMsg', 'Fail: ' . join(a:result.args))
+" Private --------------------------------------------------------------------
+function! s:command(bang, range, qargs) abort
+  let args = s:Argument.new(a:qargs)
+  let scheme = args.get_p(0, '')
+  if a:bang !=# '!' && !empty(scheme)
+    try
+      return call(
+            \ printf('giit#component#%s#command#command', scheme),
+            \ [a:range, a:qargs]
+            \)
+    catch /^Vim\%((\a\+)\)\=:E117/
+      call s:Prompt.debug(v:exception)
+      call s:Prompt.debug(v:throwpoint)
+    endtry
   endif
-  for line in a:result.content
-    call s:Prompt.echo('None', line)
-  endfor
-endfunction
 
-function! giit#operator#error(result) abort
-  return s:Exception.error(printf(
-        \ "Fail: %s\n%s",
-        \ join(a:result.args),
-        \ join(a:result.content, "\n")
-        \))
-endfunction
-
-function! giit#operator#split_object(object) abort
-  let m = matchlist(a:object, '^\(:[0-3]\|[^:]*\):\(.\+\)$')
-  if empty(m)
-    return [a:object, '']
+  let git = giit#core#get()
+  let options = {
+        \ 'quiet': args.pop('-q|--quiet'),
+        \}
+  let result = giit#operator#execute(git, args)
+  if !options.quiet
+    call giit#process#inform(result)
   endif
-  return m[1:2]
+  call giit#trigger_modified()
+  return result
 endfunction
 
-function! giit#operator#build_object(commit, relpath) abort
-  return empty(a:relpath)
-        \ ? a:commit
-        \ : a:commit . ':' . a:relpath
+function! s:complete(arglead, cmdline, cursorpos) abort
+  call s:Exception.register(function('s:complete_exception_handler'))
+  let cmdline = matchstr(a:cmdline, '^\w\+ \zs.*\ze .*$')
+  let args    = s:Argument.new(cmdline)
+  let scheme  = args.get_p(0, '')
+  if a:cmdline !~# '^\w\+!' && !empty(scheme)
+    try
+      return call(
+            \ printf('giit#component#%s#command#complete', scheme),
+            \ [a:arglead, a:cmdline, a:cursorpos]
+            \)
+    catch /^Vim\%((\a\+)\)\=:E117/
+      call s:Prompt.debug(v:exception)
+      call s:Prompt.debug(v:throwpoint)
+    endtry
+  endif
+  return []
+endfunction
+
+function! s:complete_exception_handler(exception) abort
+  call s:Prompt.debug(v:exception)
+  call s:Prompt.debug(v:throwpoint)
+  return 1
 endfunction

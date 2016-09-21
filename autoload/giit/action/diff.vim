@@ -1,6 +1,3 @@
-let s:BufferAnchor = vital#giit#import('Vim.Buffer.Anchor')
-
-
 function! giit#action#diff#define(binder) abort
   call a:binder.define('diff', function('s:on_diff'), {
         \ 'description': 'Show a diff content',

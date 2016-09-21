@@ -72,6 +72,7 @@ function! giit#action#index#define(binder) abort
         \})
 endfunction
 
+
 function! s:on_add(candidates, options) abort
   let git = giit#core#require()
   let options = extend({

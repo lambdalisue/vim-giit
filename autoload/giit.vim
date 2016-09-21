@@ -15,8 +15,8 @@ function! giit#expand(expr) abort
 endfunction
 
 function! giit#trigger_modified() abort
-  call giit#util#doautocmd('User', 'GiitModifiedPre')
-  call giit#util#doautocmd('User', 'GiitModifiedPost')
+  call giit#util#vim#doautocmd('User', 'GiitModifiedPre')
+  call giit#util#vim#doautocmd('User', 'GiitModifiedPost')
 endfunction
 
 function! giit#command(bang, range, qargs) abort

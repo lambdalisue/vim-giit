@@ -1,0 +1,48 @@
+Describe giit#component#commit#util
+
+  Describe #cleanup_commitmsg()
+    It strips leading and trailing empty lines from {content}
+      let mode = 'strip'
+      let content = ['', '', '', 'a', 'b', 'c', '', '', '']
+      Assert Equals(giit#component#commit#util#cleanup_commitmsg(content, mode), [
+            \ 'a',
+            \ 'b',
+            \ 'c',
+            \])
+    End
+
+    It strips trailing whitespace from {content}
+      let mode = 'strip'
+      let content = ['  a  ', 'b  ', '  c']
+      Assert Equals(giit#component#commit#util#cleanup_commitmsg(content, mode), [
+            \ '  a',
+            \ 'b',
+            \ '  c',
+            \])
+    End
+
+    It strips commentary from {content} is {mode} is not "whitespace"
+      let mode = 'strip'
+      let content = ['Not a commentary', '# A commentary', 'Not # a commentary']
+      Assert Equals(giit#component#commit#util#cleanup_commitmsg(content, mode), [
+            \ 'Not a commentary',
+            \ '',
+            \ 'Not # a commentary',
+            \])
+    End
+
+    It collapse consecutiv empty lines
+      let mode = 'strip'
+      let content = ['a', '', 'b', '', '', 'c', '', '', '', 'd']
+      Assert Equals(giit#component#commit#util#cleanup_commitmsg(content, mode), [
+            \ 'a',
+            \ '',
+            \ 'b',
+            \ '',
+            \ 'c',
+            \ '',
+            \ 'd',
+            \])
+    End
+  End
+End

@@ -6,7 +6,7 @@ function! giit#complete#commit#any(arglead, cmdline, cursorpos) abort
 endfunction
 
 function! giit#complete#commit#branch(arglead, cmdline, cursorpos) abort
-  let slug = eval(giit#complete#get_slug_expr())
+  let slug = eval(giit#util#complete#get_slug_expr())
   let git = giit#core#require()
   let candidates = git.core.get_cached_content(slug, 'config', [])
   if empty(candidates)
@@ -17,7 +17,7 @@ function! giit#complete#commit#branch(arglead, cmdline, cursorpos) abort
 endfunction
 
 function! giit#complete#commit#local_branch(arglead, cmdline, cursorpos) abort
-  let slug = eval(giit#complete#get_slug_expr())
+  let slug = eval(giit#util#complete#get_slug_expr())
   let git = giit#core#require()
   let candidates = git.core.get_cached_content(slug, 'config', [])
   if empty(candidates)
@@ -28,7 +28,7 @@ function! giit#complete#commit#local_branch(arglead, cmdline, cursorpos) abort
 endfunction
 
 function! giit#complete#commit#remote_branch(arglead, cmdline, cursorpos) abort
-  let slug = eval(giit#complete#get_slug_expr())
+  let slug = eval(giit#util#complete#get_slug_expr())
   let git = giit#core#require()
   let candidates = git.core.get_cached_content(slug, 'config', [])
   if empty(candidates)
@@ -39,7 +39,7 @@ function! giit#complete#commit#remote_branch(arglead, cmdline, cursorpos) abort
 endfunction
 
 function! giit#complete#commit#hashref(arglead, cmdline, cursorpos) abort
-  let slug = eval(giit#complete#get_slug_expr())
+  let slug = eval(giit#util#complete#get_slug_expr())
   let git = giit#core#require()
   let candidates = git.core.get_cached_content(slug, 'index', [])
   if empty(candidates)
@@ -51,7 +51,7 @@ endfunction
 
 
 function! s:filter(arglead, candidates) abort
-  return giit#complete#filter(a:arglead, a:candidates)
+  return giit#util#complete#filter(a:arglead, a:candidates)
 endfunction
 
 function! s:get_available_commits(git, args) abort

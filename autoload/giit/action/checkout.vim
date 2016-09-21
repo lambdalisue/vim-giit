@@ -52,6 +52,7 @@ function! giit#action#checkout#define(binder) abort
         \})
 endfunction
 
+
 function! s:on_checkout(candidates, options) abort
   let git = giit#core#require()
   let options = extend({

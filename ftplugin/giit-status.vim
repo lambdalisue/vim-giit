@@ -23,3 +23,5 @@ call action.smart_map('nv', '<<', '<Plug>(giit-index-stage)')
 call action.smart_map('nv', '>>', '<Plug>(giit-index-unstage)')
 call action.smart_map('nv', '--', '<Plug>(giit-index-toggle)')
 call action.smart_map('nv', '==', '<Plug>(giit-index-discard)')
+
+call neocomplete#custom#source('_', 'disabled_filetypes', {'giit-status': 1})
