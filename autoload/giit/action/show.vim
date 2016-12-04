@@ -1,3 +1,6 @@
+let s:Git = vital#giit#import('Git')
+
+
 function! giit#action#show#define(binder) abort
   call a:binder.define('show', function('s:on_show'), {
         \ 'description': 'Show an exact content',
@@ -9,13 +12,13 @@ function! giit#action#show#define(binder) abort
         \ 'description': 'Show an exact content right',
         \ 'mapping_mode': 'n',
         \ 'requirements': ['path'],
-        \ 'options': { 'opener': 'rightbelow vnew' },
+        \ 'options': { 'opener': 'belowright vnew' },
         \})
 endfunction
 
 
 function! s:on_show(candidates, options) abort
-  let git = giit#core#require()
+  let git = giit#core#get_or_fail()
   let options = extend({
         \ 'commit': '',
         \ 'opener': '',
@@ -28,12 +31,11 @@ function! s:on_show(candidates, options) abort
   let opener = empty(options.opener) ? 'edit' : options.opener
   let object = printf('%s:%s',
         \ get(candidate, 'commit', ''),
-        \ git.relpath(candidate.path),
+        \ s:Git.relpath(git, candidate.path),
         \)
   execute printf(
         \ 'Giit show --opener=%s %s',
         \ shellescape(opener),
-        \ shellescape(object),
+        \ fnameescape(object),
         \)
 endfunction
-

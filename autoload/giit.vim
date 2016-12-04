@@ -1,60 +1,21 @@
-let s:Path = vital#giit#import('System.Filepath')
-let s:Console = vital#giit#import('Vim.Console')
 let s:Config = vital#giit#import('Data.Dict.Config')
-let s:Observer = vital#giit#import('Vim.Buffer.Observer')
-let s:Exception = vital#giit#import('Vim.Exception')
+let s:Git = vital#giit#import('Git')
+let s:Path = vital#giit#import('System.Filepath')
 
 
+" Public ---------------------------------------------------------------------
 function! giit#expand(expr) abort
   if empty(a:expr)
     return ''
   endif
   let git = giit#core#get()
-  let path = giit#meta#get_at(a:expr, 'filename', expand(a:expr))
-  return s:Path.remove_last_separator(path)
+  let path = expand(a:expr)
+  let pinfo = giit#component#parse_bufname(bufname(a:expr))
+  if empty(git) || empty(pinfo)
+    return simplify(s:Path.abspath(path))
+  endif
+  return simplify(s:Git.abspath(git, pinfo.path))
 endfunction
-
-function! giit#trigger_modified() abort
-  call giit#util#vim#doautocmd('User', 'GiitModifiedPre')
-  call giit#util#vim#doautocmd('User', 'GiitModifiedPost')
-endfunction
-
-function! giit#command(bang, range, qargs) abort
-  let scheme = matchstr(a:qargs,  '^\w\+')
-  return s:Exception.call(
-        \ function('giit#scheme#call'),
-        \ [
-        \   scheme,
-        \   'operation#{}#command',
-        \   [a:bang, a:range, a:qargs]
-        \ ],
-        \)
-endfunction
-
-function! giit#execute(git, args) abort
-  let scheme = a:args.get_p(0, '')
-  return s:Exception.call(
-        \ function('giit#scheme#call'),
-        \ [
-        \   scheme,
-        \   'operation#{}#execute',
-        \   [a:git, a:args]
-        \ ],
-        \)
-endfunction
-
-function! giit#complete(git, args) abort
-  let scheme = a:args.get_p(0, '')
-  return s:Exception.call(
-        \ function('giit#scheme#call'),
-        \ [
-        \   scheme,
-        \   'operation#{}#execute',
-        \   [a:git, a:args]
-        \ ],
-        \)
-endfunction
-
 
 
 " Default variable -----------------------------------------------------------
@@ -63,40 +24,4 @@ call s:Config.define('giit', {
       \ 'debug': -1,
       \ 'develop': 1,
       \ 'complete_threshold': 30,
-      \})
-
-
-" Autocmd --------------------------------------------------------------------
-augroup giit_internal
-  autocmd! *
-  autocmd User GiitModifiedPost nested call s:Observer.update_all()
-augroup END
-
-
-" Exception ------------------------------------------------------------------
-function! s:exception_handler(exception) abort
-  let m = matchlist(
-        \ a:exception,
-        \ '^vital: Git\.Term: ValidationError: \(.*\)',
-        \)
-  if !empty(m)
-    call s:Console.warn('giit: ' . m[1])
-    return 1
-  endif
-  return 0
-endfunction
-call s:Exception.register(
-      \ function('s:exception_handler')
-      \)
-
-" Console ---------------------------------------------------------------------
-function! s:prompt_is_batch() abort
-  return g:giit#test
-endfunction
-function! s:prompt_is_debug() abort
-  return g:giit#debug == -1 ? &verbose : g:giit#debug
-endfunction
-call s:Console.set_config({
-      \ 'batch': function('s:prompt_is_batch'),
-      \ 'debug': function('s:prompt_is_debug'),
       \})

@@ -1,6 +1,13 @@
 giit
 ==============================================================================
-[![Travis CI](https://img.shields.io/travis/lambdalisue/vim-giit/master.svg?style=flat-square&label=Travis%20CI)](https://travis-ci.org/lambdalisue/vim-giit) [![AppVeyor](https://img.shields.io/appveyor/ci/lambdalisue/vim-giit/master.svg?style=flat-square&label=AppVeyor)](https://ci.appveyor.com/project/lambdalisue/vim-giit/branch/master) ![Version 0.1.0](https://img.shields.io/badge/version-0.1.0-yellow.svg?style=flat-square) ![Support Vim 7.4.2137 or above](https://img.shields.io/badge/support-Vim%207.4.2137%20or%20above-yellowgreen.svg?style=flat-square) ![Support Git 1.8.5.6 or above](https://img.shields.io/badge/support-Git%201.8.5.6%20or%20above-green.svg?style=flat-square) [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE) [![Doc](https://img.shields.io/badge/doc-%3Ah%20giit-orange.svg?style=flat-square)](doc/giit.txt)
+[![Travis CI](https://img.shields.io/travis/lambdalisue/vim-giit/master.svg?style=flat-square&label=Travis%20CI)](https://travis-ci.org/lambdalisue/vim-giit)
+[![AppVeyor](https://img.shields.io/appveyor/ci/lambdalisue/vim-giit/master.svg?style=flat-square&label=AppVeyor)](https://ci.appveyor.com/project/lambdalisue/vim-giit/branch/master)
+![Version 0.1.0](https://img.shields.io/badge/version-0.1.0-yellow.svg?style=flat-square)
+![Support Vim 7.4.2137 or above](https://img.shields.io/badge/support-Vim%207.4.2137%20or%20above-yellowgreen.svg?style=flat-square)
+![Support Git 1.8.5.6 or above](https://img.shields.io/badge/support-Git%201.8.5.6%20or%20above-green.svg?style=flat-square)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
+[![Doc](https://img.shields.io/badge/doc-%3Ah%20giit-orange.svg?style=flat-square)](doc/giit.txt)
+
 
 Under development.
 

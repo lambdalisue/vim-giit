@@ -3,11 +3,15 @@ let s:handlers = []
 function! s:_vital_loaded(V) abort
   let s:Console = a:V.import('Vim.Console')
   let s:Guard = a:V.import('Vim.Guard')
-  call s:register(s:get_default_handler())
 endfunction
 
 function! s:_vital_depends() abort
   return ['Vim.Console', 'Vim.Guard']
+endfunction
+
+function! s:_vital_created(module) abort
+  let a:module.handlers = []
+  call a:module.register(s:get_default_handler())
 endfunction
 
 function! s:_throw(category, msg) abort
@@ -41,9 +45,9 @@ function! s:critical(msg) abort
   return s:_throw('Critical', a:msg)
 endfunction
 
-function! s:handle(...) abort
+function! s:handle(...) abort dict
   let l:exception = get(a:000, 0, v:exception)
-  for Handler in reverse(copy(s:handlers))
+  for Handler in reverse(copy(self.handlers))
     if call(Handler, [l:exception])
       return
     endif
@@ -51,8 +55,8 @@ function! s:handle(...) abort
   throw l:exception
 endfunction
 
-function! s:call(funcref, args, ...) abort
-  let guard = s:Guard.store([[s:handlers]])
+function! s:call(funcref, args, ...) abort dict
+  let guard = s:Guard.store([[self.handlers]])
   let instance = get(a:000, 0, 0)
   try
     if type(instance) == type({})
@@ -61,20 +65,20 @@ function! s:call(funcref, args, ...) abort
       return call(a:funcref, a:args)
     endif
   catch /^vital: Vim\.Exception: /
-    call s:handle()
+    call self.handle()
   finally
     call guard.restore()
   endtry
 endfunction
 
-function! s:register(handler) abort
-  call add(s:handlers, a:handler)
+function! s:register(handler) abort dict
+  call add(self.handlers, a:handler)
 endfunction
 
-function! s:unregister(handler) abort
-  let index = index(s:handlers, a:handler)
+function! s:unregister(handler) abort dict
+  let index = index(self.handlers, a:handler)
   if index != -1
-    call remove(s:handlers, index)
+    call remove(self.handlers, index)
   endif
 endfunction
 

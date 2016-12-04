@@ -3,10 +3,12 @@ let s:Exception = vital#giit#import('Vim.Exception')
 let s:GitProcess = vital#giit#import('Git.Process')
 
 
+" Public ---------------------------------------------------------------------
 function! giit#process#execute(git, args) abort
   let args = a:args.clone()
   call args.map_p(function('s:expand_percent'))
   call args.map_r(function('s:expand_percent'))
+
   let method = s:is_interactive(args) ? 'shell' : 'execute'
   return s:GitProcess[method](
         \ a:git,
@@ -47,5 +49,7 @@ function! s:is_interactive(args) abort
 endfunction
 
 function! s:expand_percent(value) abort
-  return a:value ==# '%' ? giit#expand(a:value) : a:value
+  return a:value ==# '%'
+        \ ? giit#expand(a:value)
+        \ : a:value
 endfunction

@@ -1,5 +1,11 @@
 function! s:get() abort
-  return b:_vital_interface_action
+  if exists('b:_vital_action_binder')
+    return b:_vital_action_binder
+  endif
+  throw printf(
+        \ 'vital: Action: An action binder is not attached to %s',
+        \ expand('%')
+        \)
 endfunction
 
 function! s:attach(name, ...) abort
@@ -35,7 +41,7 @@ function! s:attach(name, ...) abort
         \ 'description': 'Select action to perform',
         \ 'mapping_mode': 'inv',
         \})
-  let b:_vital_interface_action = binder
+  let b:_vital_action_binder = binder
   return binder
 endfunction
 
@@ -50,20 +56,32 @@ function! s:binder.init() abort
   imap <buffer><nowait> <Tab> <Plug>(giit-builtin-choice)
 endfunction
 
-function! s:binder.get_action(name_or_alias) abort
-  let name = has_key(self.aliases, a:name_or_alias)
-        \ ? self.aliases[a:name_or_alias]
-        \ : a:name_or_alias
-  let actions = sort(
-        \ filter(values(self.actions), 'v:val.name =~# ''^'' . name'),
-        \ 's:_compare_action_priority',
+function! s:binder.get_alias(name) abort
+  let aliases = filter(keys(self.aliases), 'v:val =~# ''^'' . a:name')
+
+endfunction
+
+function! s:binder.get_action(name) abort
+  if has_key(self.actions, a:name)
+    return self.actions[a:name]
+  elseif has_key(self.aliases, a:name)
+    return self.actions[self.aliases[a:name]]
+  endif
+  let aliases = filter(keys(self.aliases), 'v:val =~# ''^'' . a:name')
+  let actions = extend(
+        \ filter(keys(self.actions), 'v:val =~# ''^'' . a:name'),
+        \ map(aliases, 'self.aliases[v:val]')
         \)
   if empty(actions)
     echohl WarningMsg
-    echo printf('No action %s is found.', name)
+    echo printf('No action %s is found.', a:name)
     echohl None
     return {}
   endif
+  let actions = sort(
+        \ map(actions, 'self.actions[v:val]'),
+        \ 's:_compare_action_priority'
+        \)
   return get(actions, 0)
 endfunction
 
@@ -148,6 +166,7 @@ function! s:binder.include(names, ...) abort
   endfor
 endfunction
 
+
 " Actions --------------------------------------------------------------------
 function! s:_action_help(candidates, options) abort dict
   let mappings = s:_find_mappings(self)
@@ -211,10 +230,11 @@ function! s:_action_echo(candidates, options) abort
   endfor
 endfunction
 
+
 " Privates -------------------------------------------------------------------
 function! s:_throw(...) abort
   throw printf(
-        \ 'vital: Interface.Action: %s',
+        \ 'vital: Action: %s',
         \ join(map(a:000, 'type(v:val) == 1 ? v:val : string(v:val)'))
         \)
 endfunction

@@ -1,3 +1,5 @@
+let s:Git = vital#giit#import('Git')
+
 function! giit#action#checkout#define(binder) abort
   call a:binder.define('checkout', function('s:on_checkout'), {
         \ 'description': 'Checkout a contents',
@@ -54,7 +56,7 @@ endfunction
 
 
 function! s:on_checkout(candidates, options) abort
-  let git = giit#core#require()
+  let git = giit#core#get_or_fail()
   let options = extend({
         \ 'force': 0,
         \ 'ours': 0,
@@ -63,14 +65,14 @@ function! s:on_checkout(candidates, options) abort
         \}, a:options)
   let pathlist = map(
         \ copy(a:candidates),
-        \ 'shellescape(git.relpath(v:val.path))',
+        \ 'fnameescape(s:Git.relpath(git, v:val.path))',
         \)
   execute printf(
         \ 'Giit checkout --quiet %s %s %s %s -- %s',
         \ options.force ? '--force' : '',
         \ options.ours ? '--ours' : '',
         \ options.theirs ? '--theirs' : '',
-        \ options.commit,
+        \ shellescape(options.commit),
         \ join(pathlist),
         \)
 endfunction

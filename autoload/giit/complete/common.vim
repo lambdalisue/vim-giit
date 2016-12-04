@@ -8,5 +8,5 @@ function! giit#complete#common#opener(arglead, cmdline, cursorpos) abort
         \ 'tabedit',
         \]
   let prefix = a:arglead =~# '^-o' ? '-o' : '--opener='
-  return giit#util#complete#filter(a:arglead, map(candidates, 'prefix . v:val'))
+  return giit#util#list#filter(a:arglead, map(candidates, 'prefix . v:val'))
 endfunction

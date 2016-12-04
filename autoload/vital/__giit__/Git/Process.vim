@@ -4,6 +4,11 @@ function! s:_vital_loaded(V) abort
   let s:Process = a:V.import('System.Process')
   let s:config = {
         \ 'executable': 'git',
+        \ 'arguments': [
+        \   '--no-pager',
+        \   '-c', 'color.ui=false',
+        \   '-c', 'core.editor=false',
+        \ ],
         \}
 endfunction
 
@@ -13,23 +18,6 @@ function! s:_vital_depends() abort
         \ 'Data.String',
         \ 'System.Process',
         \]
-endfunction
-
-
-" Bind instance --------------------------------------------------------------
-function! s:bind(git) abort
-  let methods = [
-        \ 'arguments',
-        \ 'execute',
-        \ 'shell',
-        \]
-  for method in methods
-    if !has_key(a:git, method)
-      let a:git[method] = function('s:' . method, [a:git])
-      lockvar a:git[method]
-    endif
-  endfor
-  return a:git
 endfunction
 
 
@@ -44,22 +32,17 @@ function! s:set_config(config) abort
         \]))
 endfunction
 
-function! s:arguments(git) abort
-  let args = [
-        \ s:config.executable,
-        \ '--no-pager',
-        \ '-c', 'color.ui=false',
-        \ '-c', 'core.editor=false',
-        \]
+function! s:get_execute_args(git, args) abort
+  let args = [s:config.executable] + s:config.arguments
   if !empty(a:git) && !empty(a:git.worktree)
     let args += ['-C', a:git.worktree]
   endif
-  return args
+  return args + a:args
 endfunction
 
 function! s:execute(git, args, ...) abort
   let options = get(a:000, 0, {})
-  let args = s:arguments(a:git) + a:args
+  let args = s:get_execute_args(a:git, a:args)
   return s:Process.execute(args, options)
 endfunction
 
@@ -68,7 +51,7 @@ function! s:shell(git, args, ...) abort
         \ 'stdout': 0,
         \ 'stderr': 0,
         \}, get(a:000, 0, {}))
-  let args = s:arguments(a:git) + a:args
+  let args = s:get_execute_args(a:git, a:args)
   let args = map(args, 'shellescape(v:val)')
   let stdout = ''
   if options.stdout

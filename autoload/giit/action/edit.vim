@@ -10,13 +10,13 @@ function! giit#action#edit#define(binder) abort
         \ 'description': 'Open and edit a content right',
         \ 'mapping_mode': 'n',
         \ 'requirements': ['path'],
-        \ 'options': { 'opener': 'rightbelow vnew' },
+        \ 'options': { 'opener': 'belowright vnew' },
         \})
 endfunction
 
 
 function! s:on_edit(candidates, options) abort
-  let git = giit#core#require()
+  let git = giit#core#get_or_fail()
   let options = extend({
         \ 'opener': '',
         \}, a:options)
@@ -28,6 +28,6 @@ function! s:on_edit(candidates, options) abort
   execute printf(
         \ 'Giit edit --opener=%s %s',
         \ shellescape(opener),
-        \ shellescape(candidate.path),
+        \ fnameescape(candidate.path),
         \)
 endfunction

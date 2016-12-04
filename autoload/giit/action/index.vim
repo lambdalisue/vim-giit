@@ -1,3 +1,7 @@
+let s:Git = vital#giit#import('Git')
+let s:Emitter = vital#giit#import('Emitter')
+
+
 function! giit#action#index#define(binder) abort
   call a:binder.define('index:add', function('s:on_add'), {
         \ 'hidden': 1,
@@ -74,13 +78,13 @@ endfunction
 
 
 function! s:on_add(candidates, options) abort
-  let git = giit#core#require()
+  let git = giit#core#get_or_fail()
   let options = extend({
         \ 'force': 0,
         \}, a:options)
   let pathlist = map(
         \ copy(a:candidates),
-        \ 'shellescape(git.abspath(v:val.path))',
+        \ 'fnameescape(s:Git.abspath(git, v:val.path))',
         \)
   execute printf(
         \ 'Giit add --quiet --ignore-errors %s -- %s',
@@ -90,14 +94,14 @@ function! s:on_add(candidates, options) abort
 endfunction
 
 function! s:on_rm(candidates, options) abort
-  let git = giit#core#require()
+  let git = giit#core#get_or_fail()
   let options = extend({
         \ 'cached': 0,
         \ 'force': 0,
         \}, a:options)
   let pathlist = map(
         \ copy(a:candidates),
-        \ 'shellescape(git.abspath(v:val.path))',
+        \ 'fnameescape(s:Git.abspath(git, v:val.path))',
         \)
   execute printf(
         \ 'Giit rm --quiet --ignore-unmatch %s %s -- %s',
@@ -108,11 +112,11 @@ function! s:on_rm(candidates, options) abort
 endfunction
 
 function! s:on_reset(candidates, options) abort
-  let git = giit#core#require()
+  let git = giit#core#get_or_fail()
   let options = extend({}, a:options)
   let pathlist = map(
         \ copy(a:candidates),
-        \ 'shellescape(git.relpath(v:val.path))',
+        \ 'fnameescape(s:Git.relpath(git, v:val.path))',
         \)
   execute printf(
         \ 'Giit reset --quiet -- %s',
@@ -126,18 +130,23 @@ function! s:on_stage(candidates, options) abort dict
   for candidate in a:candidates
     if candidate.sign =~# '^.D$'
       call add(rm_candidates, candidate)
-    else
+    elseif candidate.sign !~# '^. $'
       call add(add_candidates, candidate)
     endif
   endfor
-  if get(a:options, 'force')
-    noautocmd call self.call('index:add:force', add_candidates)
-    noautocmd call self.call('index:rm:force', rm_candidates)
-  else
-    noautocmd call self.call('index:add', add_candidates)
-    noautocmd call self.call('index:rm', rm_candidates)
-  endif
-  call giit#trigger_modified()
+  try
+    call s:Emitter.block_start()
+    if get(a:options, 'force')
+      noautocmd call self.call('index:add:force', add_candidates)
+      noautocmd call self.call('index:rm:force', rm_candidates)
+    else
+      noautocmd call self.call('index:add', add_candidates)
+      noautocmd call self.call('index:rm', rm_candidates)
+    endif
+  finally
+    call s:Emitter.block_end()
+    call s:Emitter.emit('giit:modified')
+  endtry
 endfunction
 
 function! s:on_unstage(candidates, options) abort dict
@@ -154,7 +163,12 @@ function! s:on_toggle(candidates, options) abort dict
       call add(unstage_candidates, candidate)
     endif
   endfor
-  noautocmd call self.call('index:stage', stage_candidates)
-  noautocmd call self.call('index:unstage', unstage_candidates)
-  call giit#trigger_modified()
+  try
+    call s:Emitter.block_start()
+    noautocmd call self.call('index:stage', stage_candidates)
+    noautocmd call self.call('index:unstage', unstage_candidates)
+  finally
+    call s:Emitter.block_end()
+    call s:Emitter.emit('giit:modified')
+  endtry
 endfunction

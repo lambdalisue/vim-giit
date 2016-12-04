@@ -1,14 +1,10 @@
 giit
-bff0d8c58c1fb6ab9e4a9fc0c672368502f10d88
+6e682fce672da9da08aee5db517d227be5ef663f
 
 Data.Dict
 Data.List
 Data.String
 System.Cache.Memory
 System.Filepath
-System.Process
 Text.INI
-Vim.Lua.String
-Vim.Console
 Vim.Guard
-Vim.Prompt
