@@ -72,3 +72,21 @@ function! s:assign_candidates(git, result) abort
   call giit#meta#set('candidate_map', candidate_map)
   call s:Buffer.edit_content(buffer_content)
 endfunction
+
+function! s:on_stdout(job, data, event) abort
+  let bufnum = self.bufnum
+  if !bufexists(bufnum)
+    return
+  endif
+  let git = giit#core#get(bufnum)
+  let candidates = giit#meta#get_at(bufnum, 'candidates', [])
+  let new_candidates = giit#operator#status#parse_content(git, a:data)
+  call extend(candidates, new_candidates)
+  let candidate_map = {}
+  let buffer_content = []
+  for candidate in candidates
+    let candidate_map[candidate.word] = candidate
+    call add(buffer_content, candidate.word)
+  endfor
+  call giit#meta#set('candidate_map', candidate_map)
+endfunction

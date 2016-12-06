@@ -2,6 +2,7 @@ function! s:_vital_loaded(V) abort
   let s:Dict = a:V.import('Data.Dict')
   let s:String = a:V.import('Data.String')
   let s:Process = a:V.import('System.Process')
+  let s:Job = a:V.import('System.Job')
   let s:config = {
         \ 'executable': 'git',
         \ 'arguments': [
@@ -76,4 +77,10 @@ function! s:shell(git, args, ...) abort
   let result.error = empty(stderr) ? '' : s:String.join_posix_lines(readfile(stderr))
   let result.success = result.status ? 0 : 1
   return result
+endfunction
+
+function! s:jobstart(git, args, ...) abort
+  let options = get(a:000, 0, {})
+  let args = s:get_execute_args(a:git, a:args)
+  return s:Job.start(args, options)
 endfunction
